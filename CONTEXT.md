@@ -31,6 +31,10 @@ calls follow the workspace safety policy: local-first, bounded, rate-limited,
 cached, checkpointed, and cancellable. A worker must stop on rate-limit, quota,
 auth, abuse, or repeated-error signals rather than retrying or fanning out.
 
+Workers begin in read-only mode. They may write only after an explicit,
+scope-matched `APPROVED WRITE` from the orchestrator; otherwise they return a
+proposed diff and stop before changing the workspace or an external service.
+
 ## Outputs
 
 - Voice Studio: reviewed datasets and immutable `VoiceModelBundle` versions.

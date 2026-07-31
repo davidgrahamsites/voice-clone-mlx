@@ -45,3 +45,17 @@ bus, every worker must read [`OPERATIONS.md`](OPERATIONS.md). The default is
 one-at-a-time, rate-limited, cached, checkpointed work with bounded retries.
 Bursting, unbounded fan-out, tight polling, and infinite retry loops are
 prohibited.
+
+## Read-only worker default
+
+Workers are **read-only by default**. A worker may inspect files, search,
+research, run bounded non-mutating checks, and prepare a proposed diff, but it
+must not create or edit files, switch branches, commit, push, install
+dependencies, call mutating APIs, upload data, or change an external service.
+
+Before any write, the worker must send the orchestrator a write request naming:
+the exact paths or service operation, reason, intended version/branch, data
+impact, tests and `/icm-check` plan, and rollback. The orchestrator must reply
+with an explicit `APPROVED WRITE` naming the same scope. Silence, a general task
+assignment, or a previous approval does not authorize a new write. If the
+scope changes, the worker must request approval again.

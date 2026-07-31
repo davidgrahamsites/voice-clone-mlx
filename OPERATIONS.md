@@ -40,3 +40,11 @@ operation.
 Every task that touches an external service reports the service, concurrency
 cap, delay/backoff policy, cache/checkpoint location, total budget, and the
 verification used to prove that the safety rule is active.
+
+Workers are read-only until the orchestrator approves a specific write scope.
+This includes filesystem edits, branch changes, commits, dependency installs,
+uploads, POST/PUT/PATCH/DELETE requests, hosted-job creation, and changes to a
+local or remote service. A write request must include exact scope, purpose,
+version/branch impact, privacy/data impact, verification, and rollback. The
+orchestrator must answer with the literal phrase `APPROVED WRITE` plus the
+scope. A worker must stop if the requested operation exceeds that scope.
