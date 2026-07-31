@@ -40,8 +40,11 @@ Voice Studio creates and maintains the personal voice model.
 11. Present uncertain boundaries and transcription mismatches for human review.
 12. Create train, validation, and untouched test manifests split by recording
    session.
-13. Fine-tune Qwen3-TTS 12Hz 0.6B Base and retain versioned checkpoints,
-    settings, evaluations, and reference clips.
+13. Fine-tune the selected backend (Qwen3-TTS is the leading candidate, not a
+    final decision) and retain versioned checkpoints or adapters, settings,
+    evaluations, and reference clips. A reference-audio clone is a baseline;
+    the deliverable is an immutable `fine_tuned_full` or `fine_tuned_adapter`
+    model bundle that Voice Reader can load without Voice Studio.
 
 The recording conditions remain technically consistent while vocal delivery
 varies deliberately. The initial target distribution is 60–70% natural neutral
@@ -62,7 +65,8 @@ the personal voice.
 4. Normalize typography, numbers, dates, abbreviations, URLs, and pronunciation
    overrides into a reviewable project document.
 5. Split text at sentence and paragraph boundaries for stable generation.
-6. Let the user assign a default style and optional styles to individual
+6. Let the user select any installed voice bundle (the user's voice or another
+   consented voice), then assign a default style and optional styles to individual
    passages before synthesis.
 7. Generate resumably, cache completed chunks, preview/regenerate individual
    passages, and export WAV or MP3 plus a generation manifest.

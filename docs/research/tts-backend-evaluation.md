@@ -1,7 +1,7 @@
 ---
 type: research-contract
 contract: personal-voice-tts-backend-evaluation
-status: decision-ready
+status: round-trip-gated
 checked_at: 2026-07-30
 inputs:
   - ../../PLAN.md
@@ -18,15 +18,28 @@ keeping the model bundle and Reader loader provider-neutral.
 
 ## Decision
 
-Use **Qwen3-TTS 12Hz 0.6B Base** as the first implementation target and keep
-**F5-TTS v1** as the private-use comparison backend.
+Do **not** select a final backend from reference-audio cloning alone. Qwen3-TTS
+0.6B Base is the leading candidate and F5-TTS v1 remains a comparison
+candidate, but either one must first pass the model round-trip test below:
 
-Qwen is the best overall fit because its official Base model supports rapid
-reference-voice cloning and supervised fine-tuning, its code and official
-weights are Apache-2.0, and MLX-Audio provides a maintained community inference,
-conversion, streaming, and local-serving path. Fine-tuning remains an isolated
-remote-CUDA stage; the promoted source checkpoint is preserved and an MLX
-conversion is a separately verified runtime variant.
+```text
+Voice Studio: owned recordings -> fine-tune -> immutable trained artifact
+Voice Reader: selected bundle -> load that artifact/runtime -> synthesize
+```
+
+Qwen's Base model can clone a voice from a short reference clip, but that is a
+conditioning prompt, not a saved personal model. A fine-tuned checkpoint or
+adapter learned from the user's accepted dataset is the artifact that satisfies
+the product requirement. The official Qwen project documents fine-tuning, while
+the MLX-Audio documentation currently demonstrates Base-model loading with
+`ref_audio`/`ref_text`; it does not by itself prove loading arbitrary custom
+fine-tuned checkpoints in the Reader.
+
+Qwen remains the leading candidate because its official Base model supports
+reference cloning and fine-tuning, its code and official weights are Apache-2.0,
+and MLX-Audio provides a community Apple-Silicon inference path. It is promoted
+only after an end-to-end artifact load succeeds. F5 remains a private-use
+comparison backend.
 
 F5 remains attractive for private experimentation: it has expressive
 reference-audio cloning, an official fine-tuning workflow, Apple-Silicon
@@ -53,10 +66,10 @@ This is an engineering recommendation, not legal advice.
 
 ### A. Best for this private, local utility
 
-1. **Qwen3-TTS 0.6B Base** — primary implementation target. Strong personal
-   cloning and official fine-tuning, Apache-2.0 code/weights, and the strongest
-   current M1 route through community MLX-Audio. The 0.6B size is preferred for
-   first M1 validation; 1.7B remains a quality benchmark.
+1. **Qwen3-TTS 0.6B Base** — leading candidate pending round-trip proof. Strong
+   personal cloning and official fine-tuning, Apache-2.0 code/weights, and the
+   strongest current M1 route through community MLX-Audio. The 0.6B size is
+   preferred for first M1 validation; 1.7B remains a quality benchmark.
 2. **F5-TTS v1** — private-use comparison backend. Strong expressive cloning,
    official fine-tuning, and a community MLX port, but official weights and
    their fine-tuned derivatives are non-commercial.
@@ -126,7 +139,8 @@ continues only when a failed acceptance dimension identifies missing material.
 2. `VoiceModelLoading` verifies the bundle, detects M1 capabilities, and asks a
    backend registry for a compatible runtime. It does not convert, download,
    train, or synthesize.
-3. A `qwen3_mlx_inference` leaf adapter is the first code slice. An
+3. A `qwen3_mlx_inference` leaf adapter is the first code slice only for the
+   reference-audio baseline until the custom-checkpoint round trip passes. An
    `f5_mlx_inference` leaf adapter may be added without editing Reader or shared
    contracts.
 4. Remote training emits an append-only training-run manifest and source
@@ -134,6 +148,46 @@ continues only when a failed acceptance dimension identifies missing material.
    promotion and must pass parity tests before its runtime variant is selectable.
 5. The first data milestone is 20–30 minutes plus a curated reference library.
    A 1–2 hour collection is triggered only by measured quality gaps.
+
+## Model handoff and round-trip contract
+
+The two apps are intentionally model-agnostic at their public seam:
+
+| Concern | Voice Studio (producer) | Voice Reader (consumer) |
+|---|---|---|
+| Voice identity | Creates `voice_id` for the recorded speaker and may create multiple immutable versions | Selects any installed `voice_id` and exact bundle checksum, including another person's consented bundle |
+| Learned artifact | Fine-tuned full checkpoint or adapter plus training provenance | Loads the artifact through an accepted runtime variant; never trains or edits it |
+| Model family | May train Qwen, F5, or another provider behind a leaf trainer | May load any provider for which a verified loader/runtime adapter exists |
+| Different families | Allowed only when a declared converter/export preserves the source release and passes parity checks | Never guesses compatibility; a missing adapter is a typed load error |
+| Reference audio | Curated evidence and optional zero-shot baseline | Optional conditioning input only when the selected runtime declares that mode |
+
+“Different models” can mean multiple voice bundles (your voice and another
+voice), or different training/runtime implementations. A Qwen checkpoint cannot
+be handed to an F5 loader just because both produce speech; the bundle must
+contain a verified conversion or a provider-native runtime for that exact
+artifact. The Reader loads a selected bundle, not “the model that Studio
+happened to use.”
+
+The artifact kind is explicit: `reference_clone` (no learned personal
+checkpoint), `fine_tuned_full` (complete learned weights), or
+`fine_tuned_adapter` (adapter plus its immutable base-model dependency). A
+`reference_clone` is a baseline and cannot be promoted as the trained personal
+model path.
+
+Before a backend/runtime variant can be selected:
+
+- Studio fine-tunes a tiny owned-data fixture (or a checked-in test fixture) and
+  writes an immutable checkpoint or adapter plus checksums;
+- the bundle publisher records the voice id, source model family, artifact kind,
+  base dependency when applicable, runtime adapter, license/provenance, and
+  exact compatibility claims;
+- Reader, with Studio/trainer code unavailable, loads the same bundle locally;
+- Reader generates fixed prompts and records the selected voice id, bundle
+  checksum, backend, runtime, device, and artifact checksum;
+- generated output passes the audio contract and human voice-similarity checks;
+- deleting the trainer leaves the Reader fixture test passing;
+- if any step fails, the backend is baseline/comparison only and cannot be
+  called the final personal-model path.
 
 ## Acceptance contract
 
@@ -178,4 +232,3 @@ Before a backend/runtime variant can be selected:
 - [Apple MLX Whisper](https://github.com/ml-explore/mlx-examples/tree/main/whisper)
 - [MLX-Audio models, conversion, and local server](https://github.com/Blaizzy/mlx-audio)
 - [Community F5-TTS MLX port](https://github.com/lucasnewman/f5-tts-mlx)
-

@@ -75,10 +75,12 @@ record -> transcribe -> align -> dataset      import -> normalize -> segment
   directory conforming to Bundle Contract v1.
 - Shared contract code contains schemas, typed errors, and provider-neutral
   ports only. It contains no UI, training workflow, F5 runtime, or app state.
-- Qwen3-TTS 12Hz 0.6B Base is the first implementation target. Official remote
-  CUDA fine-tuning produces the source checkpoint; community MLX-Audio provides
-  the separately verified local conversion/inference runtime. Community MLX
-  support is never described as official Qwen support.
+- Qwen3-TTS 12Hz 0.6B Base is the leading candidate, not an unconditional
+  backend decision. Its reference-audio path is a zero-shot baseline until a
+  fine-tuned artifact can make the complete Studio-to-Reader round trip.
+  Official remote CUDA fine-tuning produces the source checkpoint; community
+  MLX-Audio provides a separately verified local conversion/inference runtime.
+  Community MLX support is never described as official Qwen support.
 - F5-TTS remains a private-use comparison backend behind the same ports. Its
   official code provenance (MIT), pretrained-weight provenance (CC BY-NC), and
   non-official community MLX provenance are preserved in every F5 artifact.
@@ -108,6 +110,7 @@ they do not absorb domain behavior.
 | `runtime_variant_evaluator` | Compare one runtime candidate with its source release | Runtime candidate, source release, frozen parity prompts | `RuntimeEvaluationReport` and preview audio | Studio | Failed parity blocks variant selection without revoking the source release |
 | `bundle_publisher` | Package one source release and accepted variants into one immutable bundle | Source release, accepted runtime reports, metadata, licenses, references | `VoiceModelBundle` plus atomic promotion pointer | Studio | Existing bundles are never overwritten; publication is atomic or absent |
 | `bundle_reader` | Parse and verify a bundle without loading a model | Bundle directory | `VerifiedVoiceModelBundle` | Shared | Typed schema, path, checksum, or provenance error occurs before backend initialization |
+| `voice_model_catalog` | List installed immutable bundles for explicit user selection | Voice-model roots and verified bundle metadata | `VoiceModelDescriptor[]` | Reader | It never chooses a voice implicitly or loads model weights |
 | `local_capability_detector` | Report local execution capabilities | OS/runtime probes | `LocalCapabilitySet` | Shared | Probe errors are data in the report; they do not invent GPU support |
 | `remote_training_target` | Verify one explicitly configured remote CUDA target | Endpoint/config reference | `RemoteTrainingCapability` | Studio | Unavailable or incompatible CUDA fails before data export or training |
 | `capability_selector` | Choose a supported device under caller policy | Capability set, backend support, `ExecutionPolicy` | `ExecutionPlan` | Shared | No allowed compatible device produces `NoCompatibleDevice` |
@@ -233,12 +236,15 @@ all mandatory thresholds passing, and named/time-stamped human approval.
 
 ### `SourceModelRelease` v1
 
-One immutable JSON document plus the copied source checkpoint records
+One immutable JSON document plus the copied source artifact records
 `source_release_id`, `voice_id`, `model_version`, provider/model identity,
-checkpoint format/revision/checksum, dataset/training/evaluation checksums,
-license layers, reference-library id, timestamps, and approval. It is the
-canonical promoted learned model. It contains no MLX conversion and is never
-rewritten when runtime variants are added or removed.
+`artifact_kind` (`reference_clone`, `fine_tuned_full`, or
+`fine_tuned_adapter`), checkpoint or adapter format/revision/checksum, base
+model dependency when the artifact is an adapter, dataset/training/evaluation
+checksums, license layers, reference-library id, timestamps, and approval. A
+`reference_clone` has no learned personal checkpoint and is baseline-only; a
+fine-tuned release is the canonical promoted learned model. It contains no MLX
+conversion and is never rewritten when runtime variants are added or removed.
 
 ### `ConversionManifest` v1
 
@@ -294,7 +300,7 @@ sibling staging directory, verified, then atomically renamed.
 | `bundle_id` | `<voice-id>@<model-version>` |
 | `voice_id`, `model_version` | Stable voice identity and immutable promoted SemVer |
 | `created_at`, `promoted_at` | UTC timestamps |
-| `source_model` | Provider/model id, source-release path/checksum, checkpoint format/version, license references |
+| `source_model` | Provider/model id, `artifact_kind`, source-release path/checksum, checkpoint or adapter format/version, base dependency when applicable, license references |
 | `runtime_variants` | Zero or more variant ids with backend/runtime id, format, converter, quantization, artifact paths/checksums, parity-report path, and license references |
 | `references` | Path to reference index, default reference id, style coverage |
 | `training_provenance` | Dataset/training/evaluation ids and SHA-256 values; no raw private transcript content |
@@ -375,6 +381,31 @@ not a legal determination. Qwen's selected official code/weights are recorded
 as Apache-2.0; F5's selected official weights and their fine-tunes retain the
 CC-BY-NC/personal-noncommercial restriction. Any future provider gets a leaf
 adapter and its own provenance; the bundle envelope stays neutral.
+
+### Producer/consumer model handoff
+
+The two apps do not need to use the same model family, and the Reader does not
+assume that the model used for training is the model used for local generation.
+The rules are explicit:
+
+| Concern | Voice Studio (producer) | Voice Reader (consumer) |
+|---|---|---|
+| Voice identity | Creates a stable `voice_id` and immutable model versions | Selects any installed `voice_id` and exact bundle checksum, including another consented voice |
+| Learned artifact | Emits a full fine-tuned checkpoint or a fine-tuned adapter with its base dependency | Loads that artifact through an accepted runtime variant; never trains, edits, or silently substitutes it |
+| Model family | Qwen, F5, or another provider behind a leaf trainer | Any provider with a verified loader/runtime adapter |
+| Cross-family use | Requires a declared converter/export and parity evidence | Fails with a typed compatibility error when no verified path exists |
+| Reference audio | Curated evidence and optional zero-shot baseline | Optional conditioning only when the selected runtime declares it |
+
+`reference_clone` means “base model plus reference audio”; it is not a trained
+personal model. `fine_tuned_full` means complete learned weights.
+`fine_tuned_adapter` means adapter weights plus the immutable base-model
+dependency. Only the latter two kinds can satisfy the trained-model acceptance
+gate; reference cloning remains a comparison mode.
+
+Reader receives one explicit bundle for a synthesis job, or a descriptor from
+`voice_model_catalog` and then an explicit bundle selection. It never searches
+training runs, chooses “latest,” or assumes that a Qwen artifact can be loaded
+by an F5 runtime merely because both produce speech.
 
 ## Stable Reader interfaces
 
@@ -521,6 +552,15 @@ deterministic fake-backend contract suite.
 13. MLX-boundary tests fail if local inference, conversion, serving, or learned
     evaluation imports the CUDA trainer; manifests identify every allowed
     non-MLX helper and community F5 MLX provenance is labeled non-official.
+14. The model round-trip fixture trains or loads a `fine_tuned_full` or
+    `fine_tuned_adapter` artifact in Studio, publishes a bundle, removes Studio
+    and trainer imports, and proves Reader loads the same artifact/runtime and
+    generates the fixed prompts with the expected voice and checksum.
+15. A `reference_clone` fixture is clearly labeled baseline-only and cannot be
+    promoted as the trained personal-model path.
+16. A Reader catalog fixture lists at least two immutable voice bundles and
+    proves the user can select either exact bundle without selecting “latest,”
+    loading the wrong voice, or importing Studio.
 
 ## Non-goals and dependency rules
 
