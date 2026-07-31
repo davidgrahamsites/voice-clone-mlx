@@ -16,14 +16,15 @@ recorder as a source of raw files, then run a local, staged pipeline:
 2. detect speech (VAD);
 3. diarize speech into speaker turns;
 4. identify the owner's turns with an enrolled voice embedding;
-5. quarantine uncertain and overlapping turns rather than silently adding them
-   to the training set; and
-6. use a separation model only for the hard overlap cases, followed by another
-   speaker-identity check.
+5. reject the entire candidate clip if another voice overlaps or appears in
+   that clip; and
+6. preserve the rejected source span only for audit, never for training.
 
 This is **speaker filtering**, not a single magic “extract me” operation. It is
-reliable when speakers take turns, less reliable when people talk over one
-another, and cannot recover words that are completely masked by another voice.
+reliable when speakers take turns. The dataset rule is intentionally stricter:
+if two voices occur anywhere in one candidate clip, the whole clip is clipped
+from the dataset and rejected. We do not attempt to rescue overlap with source
+separation.
 
 ## What the purchased Tonfarb A20 provides
 
@@ -114,13 +115,14 @@ Use three buckets, not a binary delete:
 
 * `accept`: owner similarity is above the calibrated threshold and no overlap
   flag is present;
-* `review`: low margin, short segment, clipping, overlap, or disagreement
-  between embedding windows; and
+* `review`: low margin, short segment, clipping, or disagreement between
+  embedding windows; and
 * `reject`: a different enrolled speaker or non-speech.
 
-Only `accept` is eligible for automatic dataset construction. Preserve links to
-the raw span for manual review and allow the user to promote a `review` span
-after listening.
+Any overlap flag or any non-target speaker inside the candidate clip is an
+immediate `reject`, not a `review`. Only `accept` is eligible for automatic
+dataset construction. Preserve links to rejected raw spans for audit, but do
+not provide a promotion path for mixed-speaker clips.
 
 ### pyannote.audio fallback (strong diarization, not MLX)
 
@@ -139,16 +141,13 @@ used for difficult overlaps on a machine with adequate memory, then checked
 with the owner embedding. It should not replace the default diarization-plus-
 verification path on an M1.
 
-### Overlap fallback: SAM-Audio (experimental, not owner-aware)
+### Overlap handling: reject, do not rescue
 
-Meta's [SAM-Audio repository](https://github.com/facebookresearch/sam-audio)
-can isolate a target sound from a mixture using text, visual, or temporal
-prompts and returns target/residual audio. It is useful as an optional rescue
-stage for a segment marked `overlap`, for example with a temporal prompt that
-contains a short clean owner-only interval. However, the model does **not** use
-an enrollment audio clip as a speaker identity prompt and cannot reliably
-distinguish very similar voices. It is not MLX-native in the official release,
-so keep it behind a provider seam and never make it a required M1 dependency.
+Source-separation systems such as Meta's [SAM-Audio repository](https://github.com/facebookresearch/sam-audio)
+may estimate a target stem, but they can introduce artifacts and cannot
+guarantee that another speaker's phonemes were removed. They are explicitly out
+of the dataset path. The app records the overlap reason and rejects the whole
+candidate clip.
 
 ## Enrollment protocol
 
@@ -183,18 +182,15 @@ fact in the manifest.
    the expected maximum number of speakers where supported. Save model revision,
    windowing parameters, and diarization output.
 6. **Identify the owner.** Score each turn against the enrollment embedding;
-   calibrate and apply accept/review/reject policy. Reject or review overlap
-   spans even if the anonymous speaker ID usually maps to the owner.
-7. **Optional separation.** For review spans only, try the configured
-   separation backend. Re-run owner verification and keep both the separated
-   waveform and the original span for audit. Never silently replace the source.
-8. **Transcribe accepted spans.** Run the already-installed Whisper MLX/large-v3
+   calibrate and apply accept/review/reject policy. If the candidate clip has
+   an overlap flag or any non-target speaker, reject the entire clip.
+7. **Transcribe accepted spans.** Run the already-installed Whisper MLX/large-v3
    (or mlx-audio Whisper) on accepted clips, retaining word timestamps and the
    original source offsets. Correct the transcript before using it as reference
    text for TTS training.
-9. **Human gate.** Listen to a random sample and every low-confidence/overlap
-   decision. The user must be able to undo a decision and regenerate the dataset.
-10. **Build a versioned dataset.** Store only accepted audio plus manifest,
+8. **Human gate.** Listen to a random sample and every low-confidence decision.
+   Rejected mixed-speaker clips remain auditable but cannot be promoted.
+9. **Build a versioned dataset.** Store only accepted audio plus manifest,
     checksums, source offsets, speaker score, processing-model revisions, and
     licensing/privacy metadata. The raw intake remains immutable and separate.
 
@@ -206,8 +202,8 @@ local bus requests, model downloads, or external services.
 ## Where it will fail (and how the app should respond)
 
 * **Overlapping speech:** diarization can mark overlap, but the waveform is a
-  mixture. Mark `review`; do not train on it automatically. Separation can
-  leave another voice's phonemes or distort the owner.
+  mixture. Reject the entire candidate clip. Separation is not used to rescue
+  training data.
 * **Very short turns:** embeddings are unstable on a few hundred milliseconds.
   Merge adjacent same-speaker turns when the gap is below the configured collar,
   or send the span to review.
@@ -226,9 +222,8 @@ local bus requests, model downloads, or external services.
 ## Decision
 
 Implement the first version as **MLX-first VAD → MLX Sortformer diarization →
-local ECAPA speaker verification → human review**, with Whisper MLX after
-filtering. Add a provider seam for pyannote and an opt-in overlap rescue seam
-for SAM-Audio or a future target-speaker-separation model. This gives the user
-the requested all-day capture workflow without claiming that inexpensive
-hardware can perfectly unmix simultaneous conversations.
-
+local ECAPA speaker verification → hard overlap rejection → human review**, with
+Whisper MLX after filtering. Add pyannote only as a diarization comparison
+provider; do not add an overlap-rescue path to the training dataset. This gives
+the user the requested all-day capture workflow without claiming that
+inexpensive hardware can perfectly unmix simultaneous conversations.
