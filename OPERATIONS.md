@@ -48,3 +48,17 @@ local or remote service. A write request must include exact scope, purpose,
 version/branch impact, privacy/data impact, verification, and rollback. The
 orchestrator must answer with the literal phrase `APPROVED WRITE` plus the
 scope. A worker must stop if the requested operation exceeds that scope.
+
+## Git safety
+
+**Never burst Git.** Run Git commands one at a time, with a deliberate pause
+between repeated operations when a remote or large repository is involved.
+Never fan out `fetch`, `pull`, `push`, clone, checkout, status, log, or branch
+commands across workers or terminals. Do not run tight Git polling loops or
+automatic retry storms. Cache inspection results, use bounded commands, and
+stop on authentication, lock, rate-limit, or repository-corruption errors.
+
+Before any remote Git write (`push`, tag publication, release, or pull-request
+operation), obtain a separate scoped `APPROVED WRITE` that names the exact
+repository, branch/tag, and rollback. Local commits and branch changes still
+follow the read-only worker rule and version policy.

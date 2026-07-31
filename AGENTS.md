@@ -8,6 +8,7 @@ independently deletable apps and shared versioned artifact contracts.
 - Version hierarchy, branch tree, and worker release gate:
   [`VERSIONING.md`](VERSIONING.md)
 - External API/service safety gate: [`OPERATIONS.md`](OPERATIONS.md)
+- Plain-language reporting gate: [`REPORTING.md`](REPORTING.md)
 - Voice-model producer/consumer contract:
   [`docs/architecture/voice-model-lifecycle.md`](docs/architecture/voice-model-lifecycle.md)
 - Current TTS backend decision:
@@ -17,6 +18,10 @@ Read the contract for the module being changed and only its named inputs. Keep
 UI, domain workflow, providers, and filesystem artifacts behind separate seams.
 Run `/icm-check` and relevant tests after every coding task, UI task, refactor,
 or file move.
+
+All status updates, worker handoffs, error reports, and final reports follow
+[`REPORTING.md`](REPORTING.md). Use plain talk and define jargon inline on first
+use.
 
 ## Required version discipline
 
@@ -45,6 +50,9 @@ bus, every worker must read [`OPERATIONS.md`](OPERATIONS.md). The default is
 one-at-a-time, rate-limited, cached, checkpointed work with bounded retries.
 Bursting, unbounded fan-out, tight polling, and infinite retry loops are
 prohibited.
+
+Git operations follow the same rule: never burst Git commands across workers,
+terminals, or retry loops.
 
 ## Read-only worker default
 
