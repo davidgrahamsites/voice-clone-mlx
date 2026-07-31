@@ -66,6 +66,39 @@ Make every job resumable and checkpoint at least once per epoch. Copy checkpoint
 
 If free quotas prove too fragmented, the economical fallback is renting one 24 GB or 48 GB GPU for a checkpointed run, not maintaining a server. That is near-zero-cost compared with weeks of engineering around unreliable free sessions.
 
+## Cost-minimizing GPU ladder
+
+Use this order and stop as soon as the acceptance tests pass:
+
+1. **Local M1 preparation:** record, transcribe, reject mixed-speaker clips,
+   align, resample, build manifests, and run zero-shot baselines locally. Do
+   not spend GPU money before the dataset and prompts are proven.
+2. **Free notebook pilot:** run a tiny Qwen 0.6B smoke test and one short
+   resumable fine-tune on Kaggle or Colab. Their free GPU availability and
+   quotas change, so treat these as opportunistic workers, not guaranteed
+   infrastructure. [Kaggle GPU guidance](https://www.kaggle.com/docs/efficient-gpu-usage) ·
+   [Colab FAQ](https://research.google.com/colaboratory/faq.html)
+3. **Preemptible/marketplace rental:** if free sessions cannot finish, rent a
+   24 GB consumer GPU first. Vast.ai is a marketplace whose price and host
+   reliability vary; RunPod publishes per-second GPU pricing and is usually
+   easier to make reproducible. [Vast.ai](https://vast.ai/) ·
+   [RunPod pricing](https://docs.runpod.io/serverless/pricing)
+4. **48 GB GPU only on evidence:** use an A6000/A40-class machine only if the
+   selected training configuration cannot fit on 24 GB. Do not jump to an A100
+   or H100 for the first run.
+
+Every paid run must have a preflight estimate, a hard dollar ceiling, an
+automatic stop time, checkpoint uploads, and a clean shutdown step. The first
+paid job should be a 10–20 minute environment/smoke test; the second should be
+one short fine-tune with the 20–30 minute pilot dataset. Only a measured quality
+win authorizes the full corpus. Never leave a GPU, disk, or notebook running
+between jobs.
+
+The app should make this policy visible in the training manifest:
+`provider`, `gpu_type`, `price_source`, `estimated_max_cost`, `hard_cost_cap`,
+`deadline`, `checkpoint_uri`, `shutdown_verified`, and `user_approval`. A job
+that cannot report those fields is not eligible to start.
+
 ## End-to-end execution plan
 
 1. Define acceptance tests before recording: 50 unseen sentences spanning narration, dialogue, numbers/names, questions, emotion, and a 3–5 minute continuous passage. Score intelligibility, speaker similarity, naturalness, unwanted artifacts, and consistency blind against the real recordings.
