@@ -8,6 +8,7 @@ contracts.
 - Product direction: [`PLAN.md`](PLAN.md)
 - Version and branch policy: [`VERSIONING.md`](VERSIONING.md)
 - External-service safety policy: [`OPERATIONS.md`](OPERATIONS.md)
+- Plain-language reporting policy: [`REPORTING.md`](REPORTING.md)
 - Voice-model lifecycle contract:
   [`docs/architecture/voice-model-lifecycle.md`](docs/architecture/voice-model-lifecycle.md)
 - Current backend decision:
@@ -34,6 +35,9 @@ auth, abuse, or repeated-error signals rather than retrying or fanning out.
 Workers begin in read-only mode. They may write only after an explicit,
 scope-matched `APPROVED WRITE` from the orchestrator; otherwise they return a
 proposed diff and stop before changing the workspace or an external service.
+
+All outputs use plain language. Technical terms, abbreviations, and model names
+are defined inline before they are reused.
 
 ## Outputs
 
