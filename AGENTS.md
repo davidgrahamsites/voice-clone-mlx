@@ -34,12 +34,14 @@ first status update, it must state the intended version impact (`PATCH`,
   note, compatibility decision, and a `breaking/vX.0.0-<short-name>` branch.
 
 The orchestrator owns branch creation, merge order, and release tags. A worker
-reports the changed seams, chosen version level, migration impact, `/icm-check`
+reports changed seams, chosen version level, migration impact, `/icm-check`
 result, and test/build evidence before handoff. No worker may silently rewrite
 an earlier major line or use a version number merely to label an experiment.
 
-Every worker must also read [`OPERATIONS.md`](OPERATIONS.md) before using an
-API, service, web app, hosted GPU, model registry, browser automation flow, or
-local bus. The default is one-at-a-time, rate-limited, cached, checkpointed
-work with bounded retries. Bursting, unbounded fan-out, tight polling, and
-infinite retry loops are prohibited.
+## External-service gate
+
+Before using an API, service, hosted GPU, model registry, browser flow, or local
+bus, every worker must read [`OPERATIONS.md`](OPERATIONS.md). The default is
+one-at-a-time, rate-limited, cached, checkpointed work with bounded retries.
+Bursting, unbounded fan-out, tight polling, and infinite retry loops are
+prohibited.

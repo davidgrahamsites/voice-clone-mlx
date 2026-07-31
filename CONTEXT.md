@@ -26,12 +26,10 @@ runs when one task names a narrower module.
 
 All workers follow the version and branch policy before touching a seam. A
 cross-app or model-bundle contract change is presumed `MAJOR` until the
-orchestrator documents why an adapter preserves compatibility.
-
-All external calls follow the workspace safety policy: local-first, bounded,
-rate-limited, cached, checkpointed, and cancellable. A worker must stop on
-rate-limit, quota, auth, abuse, or repeated-error signals rather than retrying
-or fanning out.
+orchestrator documents why an adapter preserves compatibility. All external
+calls follow the workspace safety policy: local-first, bounded, rate-limited,
+cached, checkpointed, and cancellable. A worker must stop on rate-limit, quota,
+auth, abuse, or repeated-error signals rather than retrying or fanning out.
 
 ## Outputs
 
