@@ -50,9 +50,10 @@ weights that are not referenced by the selected manifest.
 
 ### Human check
 
-Before promotion, open the evaluation report, listen to every acceptance-set
-sample, and approve its exact `bundle_id` and intended personal/non-commercial
-usage. The promoter records that approval; Voice Reader never promotes models.
+Before publishing `promoted.json`, open the source and runtime evaluation
+reports, listen to every acceptance-set sample, and approve the exact source-
+release checksum, runtime-variant checksum, bundle id/revision/checksum, and
+intended usage. Voice Reader never approves or promotes models.
 
 ## Architectural decision
 
@@ -112,9 +113,13 @@ they do not absorb domain behavior.
 | `capability_selector` | Choose a supported device under caller policy | Capability set, backend support, `ExecutionPolicy` | `ExecutionPlan` | Shared | No allowed compatible device produces `NoCompatibleDevice` |
 | `voice_model_loader` | Load a verified bundle as an opaque model handle | Verified bundle, execution plan, backend registry | `VoiceModelLoading.load` -> `LoadedVoiceModel` | Reader-facing shared port | Unknown backend/version or load failure is typed and never falls through to another model |
 | `inference_adapter` | Synthesize one chunk with a loaded handle | `SynthesisRequest`, loaded handle | `SpeechSynthesizing.synthesize` -> WAV `AudioChunk` | Reader-facing shared port | Failed chunks remain retryable; prior cached chunks are untouched |
-| `qwen3_mlx_inference` | Convert/load/synthesize Qwen3-TTS 0.6B through pinned MLX-Audio | Provider-neutral ports plus isolated community MLX runtime | Qwen MLX implementations and `BackendSupport` | Backend | Non-official runtime provenance is explicit; imports/assets do not leak into shared/apps |
+| `qwen3_mlx_converter` | Convert one promoted Qwen source release with pinned MLX-Audio | Source release plus conversion request | Qwen `RuntimeVariantCandidate` | Backend | Non-official converter provenance is explicit; it never loads Reader models |
+| `qwen3_mlx_loader` | Load one verified Qwen MLX runtime variant | Verified variant plus execution plan | Opaque Qwen handle through `VoiceModelLoading` | Backend | It never converts, downloads, selects, or synthesizes |
+| `qwen3_mlx_synthesizer` | Synthesize one chunk with a loaded Qwen handle | Synthesis request plus opaque handle | WAV `AudioChunk` through `SpeechSynthesizing` | Backend | It owns no loading, caching, retry, or assembly |
 | `qwen3_cuda_trainer` | Fine-tune Qwen3-TTS remotely with its official recipe | Explicitly exported dataset and training request | Resumable source checkpoints and training report | Backend | Network/remote/CUDA concerns end at this adapter; it never converts, promotes, or loads Reader models |
-| `f5_mlx_inference` | Load/synthesize F5 comparison variants through pinned community MLX code | Provider-neutral ports plus isolated MLX runtime | F5 MLX implementation and `BackendSupport` | Backend | Private-use license/provenance stays isolated; shared/apps do not import F5 |
+| `f5_mlx_converter` | Convert one promoted F5 comparison source with pinned community code | Source release plus conversion request | F5 `RuntimeVariantCandidate` | Backend | Private-use provenance stays isolated; it never loads Reader models |
+| `f5_mlx_loader` | Load one verified F5 MLX comparison variant | Verified variant plus execution plan | Opaque F5 handle through `VoiceModelLoading` | Backend | It never converts, downloads, selects, or synthesizes |
+| `f5_mlx_synthesizer` | Synthesize one comparison chunk with a loaded F5 handle | Synthesis request plus opaque handle | WAV `AudioChunk` through `SpeechSynthesizing` | Backend | It owns no loading, caching, retry, or assembly |
 | `f5_cuda_trainer` | Fine-tune F5 comparison models remotely with its official recipe | Explicitly exported dataset and training request | Resumable source checkpoints and training report | Backend | Private-use derivative terms are recorded; it never converts, promotes, or loads Reader models |
 
 Deletion tests are architectural tests: shared contracts use a fake backend;
@@ -381,13 +386,14 @@ VoiceModelLoading.load(ModelLoadRequest) async
 ModelLoadRequest = {
   bundle_url,
   execution_policy,
+  runtime_preference,      // explicit variant id or provider-neutral `auto`
   supported_bundle_schema_major: 1
 }
 
 LoadedVoiceModel = {
-  descriptor,            // provider-neutral metadata
-  execution_plan,        // actual device/dtype selected
-  opaque_backend_handle  // not serialized or inspected by Reader
+  descriptor,             // source release + selected runtime metadata
+  execution_plan,         // actual runtime/device/dtype selected
+  opaque_backend_handle   // not serialized or inspected by Reader
 }
 
 SpeechSynthesizing.synthesize(SynthesisRequest, LoadedVoiceModel) async
@@ -398,7 +404,9 @@ SpeechSynthesizing.synthesize(SynthesisRequest, LoadedVoiceModel) async
 `VoiceModelLoading` has one job: produce a verified, ready opaque handle. Its
 implementation delegates path/schema/integrity work to `bundle_reader`, device
 choice to `capability_selector`, and provider loading to the registered backend.
-It does not synthesize, cache, promote, discover UI state, or download weights.
+It selects only a checksum-verified runtime variant whose parity report passed.
+It does not convert, synthesize, cache, promote, discover UI state, or download
+weights. Absence of an accepted compatible variant is a typed failure.
 
 `SpeechSynthesizing` has one job: synthesize one normalized chunk. A request
 contains text, canonical style, reference id, deterministic seed where
@@ -408,37 +416,40 @@ Voice Reader owns chunk retries/caching/assembly outside the adapter.
 Required loader errors are `BundleNotFound`, `UnsupportedBundleSchema`,
 `MalformedManifest`, `UnsafeBundlePath`, `IntegrityMismatch`,
 `InvalidLicenseMetadata`, `MissingReference`, `UnsupportedBackend`,
-`NoCompatibleDevice`, and `BackendLoadFailed`. Errors include a safe user action
-and never expose private transcript text.
+`RuntimeVariantUnavailable`, `RuntimeParityRejected`, `NoCompatibleDevice`, and
+`BackendLoadFailed`. Errors include a safe user action and never expose private
+transcript text.
 
 ## Local capability selection
 
-`capability_detector` reports facts only: OS/architecture, CPU support, local
-MLX GPU availability, remote CUDA capability declared by an explicit training
-target, memory when knowable, supported dtypes, and backend runtime versions.
-An F5 adapter separately reports which detected combinations it actually
-supports. `capability_selector` intersects the two with this policy:
+`local_capability_detector` reports facts only: OS/architecture, CPU support,
+local MLX GPU availability, memory when knowable, supported dtypes, and backend
+runtime versions. A provider runtime adapter separately reports which detected
+combinations it actually supports. `capability_selector` intersects the two
+with this policy:
 
 1. An explicitly requested compatible device wins or fails; it never silently
    changes device.
 2. For local work, `auto` prefers a compatible MLX GPU, then MLX CPU when both
    caller policy and backend support allow it. Local CUDA/PyTorch is not an
    implicit fallback.
-3. F5 fine-tuning uses a reliable MLX trainer if and when one passes the same
-   contract suite. Until then it is GPU-required through the isolated remote
-   CUDA trainer. If that target is absent, return `NoCompatibleDevice` with an
-   explicit export/resume action; do not start hidden CPU or local PyTorch
-   training.
-4. F5 generation uses MLX GPU when available. MLX CPU fallback occurs only when
-   the request policy allows it and the F5 MLX probe reports support; the
+3. Qwen generation uses MLX GPU when available. MLX CPU fallback occurs only
+   when the request policy allows it and the Qwen MLX probe reports support; the
    returned execution plan records the downgrade for UI disclosure.
-5. `gpu_required` generation fails when no supported MLX GPU exists. Backend
+4. `gpu_required` generation fails when no supported MLX GPU exists. Backend
    load or out-of-memory failure does not silently retry CPU; Reader may offer
    an explicit new request with MLX CPU allowed.
 
-Training and synthesis persist the actual device, dtype, runtime, and fallback
-decision in their respective manifests. Capability selection never downloads,
-loads, trains, converts, or synthesizes a model.
+Remote training does not use the local selector. `remote_training_target`
+verifies an explicitly configured CUDA target and official provider recipe
+before any export. Qwen and F5 fine-tuning are remote-CUDA-only in v1 because no
+reliable MLX recipe is established; an unavailable target fails before training
+and never falls back to CPU, local PyTorch, or another provider. A future MLX
+trainer is a new leaf capability, not an automatic route change.
+
+Training and synthesis persist the actual target/device, dtype, runtime, and
+fallback decision in their respective manifests. Capability modules never
+download, load, train, convert, or synthesize a model.
 
 ## MLX-first compute boundaries
 
@@ -448,19 +459,21 @@ plans, not by importing MLX into domain contracts.
 
 | Stage | Preferred implementation | Allowed non-MLX boundary and reason |
 |---|---|---|
-| Transcription | Configurable bundled MLX Whisper adapter from `PLAN.md` | WAV/container I/O may use AVFoundation or a narrow codec library; it returns PCM and owns no transcript policy |
-| Preprocessing | MLX tensor operations for supported transforms | File decoding/encoding and metadata probing may use AVFoundation/libsndfile-compatible helpers because MLX is not a media container API |
-| Alignment | Deterministic domain logic; MLX model scoring only when needed | Plain text/JSON matching remains ordinary CPU code because it is not tensor compute |
-| F5 fine-tuning | Reliable MLX trainer when one passes the contract suite | Isolated remote PyTorch/CUDA trainer is temporarily allowed because a reliable official F5 MLX trainer is not assumed; no other stage may import it |
-| Model conversion | Pinned MLX conversion adapter | Reading a PyTorch checkpoint is confined to the converter input adapter when necessary; emitted candidate is MLX format |
-| TTS inference/generation | Pinned F5-compatible MLX backend on local GPU, explicit MLX CPU fallback | No implicit PyTorch fallback; unavailable/incompatible MLX runtime is a typed load/capability failure |
-| Evaluation | Candidate generation and supported learned metrics through MLX | Deterministic audio-file checks and scalar statistics may use ordinary CPU code; remote metrics are out of scope |
-| Local serving | Loopback-only process whose compute calls only the MLX inference port | Swift/XPC or HTTP transport, authentication, and file streaming are non-tensor infrastructure and own no model logic |
+| Transcription | Configurable Apple MLX Whisper adapter from `PLAN.md` | WAV/container I/O returns PCM and owns no transcript policy |
+| Alignment | Validated MLX-Audio forced aligner | Script-aware deterministic CPU alignment is an explicit fallback behind the same port |
+| Decode/resample/segment | Ordinary CPU tools such as ffmpeg/soundfile-compatible helpers | This is the preferred deterministic implementation; MLX adds no useful acceleration |
+| Qwen fine-tuning | None established locally in v1 | Isolated official Qwen remote PyTorch/CUDA adapter; no other stage imports it |
+| F5 fine-tuning | None established locally in v1 | Isolated official F5 remote PyTorch/CUDA adapter for private comparison only |
+| Model conversion | Pinned MLX-Audio conversion of a promoted Qwen source release | Reading a PyTorch checkpoint is confined to converter input; emitted candidate remains a runtime variant |
+| Qwen inference/generation | Pinned community MLX-Audio Qwen3-TTS 0.6B runtime | No implicit PyTorch fallback; incompatibility is a typed load/capability failure |
+| F5 inference/generation | Pinned community `f5-tts-mlx` comparison runtime | Official PyTorch/MPS may serve only as parity reference, not a silent Reader fallback |
+| Evaluation | Local MLX generation plus MLX Whisper/alignment metrics and human listening | Deterministic file checks/scalar statistics use ordinary CPU code; remote metrics are out of scope |
+| Local serving | Loopback-only MLX-Audio service or in-process MLX adapter | Swift/XPC or HTTP transport, authentication, and file streaming own no model logic |
 
 Every non-MLX component is a leaf behind the seam named above. Its manifest
 records implementation, version, input/output checksums, and why it was used.
-Adding a non-MLX fallback to a local compute stage is an architecture change,
-not a runtime convenience.
+Adding a non-MLX fallback to a local model-compute stage is an architecture
+change, not a runtime convenience.
 
 ## Acceptance contract
 
