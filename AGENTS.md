@@ -9,6 +9,7 @@ independently deletable apps and shared versioned artifact contracts.
   [`VERSIONING.md`](VERSIONING.md)
 - External API/service safety gate: [`OPERATIONS.md`](OPERATIONS.md)
 - Plain-language reporting gate: [`REPORTING.md`](REPORTING.md)
+- Cross-agent code review gate: [`CROSS_REVIEW.md`](CROSS_REVIEW.md)
 - Voice-model producer/consumer contract:
   [`docs/architecture/voice-model-lifecycle.md`](docs/architecture/voice-model-lifecycle.md)
 - Current TTS backend decision:
@@ -22,6 +23,11 @@ or file move.
 All status updates, worker handoffs, error reports, and final reports follow
 [`REPORTING.md`](REPORTING.md). Use plain talk and define jargon inline on first
 use.
+
+Before merge, route every code change through [`CROSS_REVIEW.md`](CROSS_REVIEW.md):
+Claude-authored code goes to Codex Sol; Codex-authored code goes to Claude
+Haiku 4.5. The reviewer checks security, purpose, five-whys cause analysis,
+god-object risk, and test-first evidence.
 
 ## Required version discipline
 

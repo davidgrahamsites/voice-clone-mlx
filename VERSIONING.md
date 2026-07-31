@@ -80,3 +80,7 @@ Before reporting completion, every coding worker must:
 4. Run the relevant tests/build.
 5. Record the version, migration note (if any), and verification evidence.
 
+6. Obtain the independent cross-agent review required by
+   [`CROSS_REVIEW.md`](CROSS_REVIEW.md). A change is not merge-ready until the
+   routed reviewer approves it or the orchestrator records a documented,
+   user-approved exception.

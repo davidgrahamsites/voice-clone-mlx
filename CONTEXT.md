@@ -9,6 +9,7 @@ contracts.
 - Version and branch policy: [`VERSIONING.md`](VERSIONING.md)
 - External-service safety policy: [`OPERATIONS.md`](OPERATIONS.md)
 - Plain-language reporting policy: [`REPORTING.md`](REPORTING.md)
+- Cross-agent code review policy: [`CROSS_REVIEW.md`](CROSS_REVIEW.md)
 - Voice-model lifecycle contract:
   [`docs/architecture/voice-model-lifecycle.md`](docs/architecture/voice-model-lifecycle.md)
 - Current backend decision:
@@ -38,6 +39,9 @@ proposed diff and stop before changing the workspace or an external service.
 
 All outputs use plain language. Technical terms, abbreviations, and model names
 are defined inline before they are reused.
+
+No code crosses an integration boundary without the independent cross-agent
+review required by `CROSS_REVIEW.md`.
 
 ## Outputs
 
