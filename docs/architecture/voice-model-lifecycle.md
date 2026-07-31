@@ -210,7 +210,10 @@ One JSON document plus referenced WAV clips. Every admitted row contains
 properties, recording-session provenance, alignment reference, split
 (`train`, `validation`, or `test`), and acceptance actor/time. Splits are
 session-exclusive; the builder fails if a session appears in multiple splits.
-Rejected rows and reasons live in a separate reviewable report.
+The admission gate rejects the entire candidate clip when diarization marks
+overlap or any non-target speaker intersects it; source separation cannot
+promote a mixed-speaker clip. Rejected rows and reasons live in a separate
+reviewable report.
 
 ### `TrainingRunManifest` v1
 
