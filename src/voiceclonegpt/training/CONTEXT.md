@@ -191,6 +191,53 @@ schema or artifact layout changes, so no migration is required.
 immutable value objects. They access no model, audio, GPU, network, filesystem
 artifact, converter, or publisher.
 
+## Immutable bundle publisher
+
+`bundle_publisher.publish_bundle(request, copier)` owns one job: copy one
+human-approved source release and one accepted runtime-parity variant into a
+complete immutable Bundle Contract v1 directory. It is an independently
+deletable Voice Studio filesystem leaf and uses only Python's standard library.
+
+### Inputs and process
+
+`BundlePublicationRequest` names the exact source release, learned checkpoint,
+runtime candidate, parity report, reference library, license notices, payload
+paths, and lowercase SHA-256 checksums. The parity report must say `accepted`,
+show all mandatory thresholds passed, identify a named UTC-dated approver, and
+bind the exact source, runtime, parity-set, and report bytes. Dataset, training,
+source evaluation, base model, converter, license, and consent provenance must
+be complete.
+
+The publisher rejects absolute or traversing paths, all payload symlinks,
+changed bytes, incomplete Bundle v1 paths, duplicate destinations, missing
+license layers, and references without exactly one consented default. It copies
+into an exclusively created sibling staging directory, rechecks every copied
+payload, writes `bundle.json`, writes a sorted `checksums.sha256` covering every
+file except itself, and atomically renames the verified staging directory only
+when the final destination is absent. Any failure removes staging and exposes
+no partial bundle. Existing bundles are never overwritten.
+
+### Output and boundary
+
+The only output is `PublishedBundle`, containing the immutable directory path
+and checksum-manifest checksum. This module never imports a model or runtime,
+registers or selects a runtime, updates a catalog, or reads/writes
+`promoted.json`; explicit promotion remains a separate human action.
+
+### Human check
+
+Before separately promoting a published bundle, open its parity report,
+references, license notices, `bundle.json`, and `checksums.sha256`. Confirm the
+approval is yours and the exact bundle checksum is the one intended for use.
+
+### Version and tests
+
+MINOR (`v0.9.0`): additive Studio-only publication capability; Bundle Contract
+v1 and Reader interfaces remain compatible, so no migration is required.
+`tests/voice_studio/test_bundle_publisher.py` uses temporary directories and a
+fake copier only. It makes no model, audio, graphics-processor, network,
+registry, catalog, runtime-selection, or promotion call.
+
 ## Bounded CUDA command provider
 
 `cuda_command_provider.CudaCommandTrainingProvider` is the independently
