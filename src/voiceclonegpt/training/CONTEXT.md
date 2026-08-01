@@ -85,3 +85,67 @@ The tests in `tests/voice_studio/test_remote_training_run.py` exercise only the
 public interface with local in-memory provider fakes. They prove admission,
 checksum binding, one-attempt failure handling, resume history, learned-artifact
 validation, and import isolation; they make no provider or network calls.
+
+## Bounded CUDA command provider
+
+`cuda_command_provider.CudaCommandTrainingProvider` is the independently
+deletable leaf that maps one provider-neutral `TrainingRequest` to one explicit
+CUDA (graphics-processor) command plan. It implements the existing
+`TrainingProvider.train(request, resume_from)` shape and returns one
+`TrainedCheckpoint`.
+
+### Inputs
+
+- An approved `PreflightDecision` from the cost-control seam above.
+- A frozen `TrainingCommandManifest`: explicit recipe id and revision, backend,
+  argument-vector prefix, working directory, dataset/config/checkpoint paths,
+  environment allowlist, target id, hard timeout, and captured-output cap.
+- One injected `CommandRunner` implementing `run(CommandPlan) -> CommandResult`.
+
+The accepted recipe identities are exact. Qwen3-TTS 12Hz 0.6B Base uses
+`qwen3-tts-0.6b-base-official-cuda`; F5-TTS v1 uses
+`f5-tts-v1-official-cuda`. Recipe, backend, and base-model identity must all
+match. The adapter never substitutes Qwen for F5, F5 for Qwen, another model,
+another device, or a local central-processor fallback.
+
+### Process
+
+Refuse a denied or contradictory preflight before the runner is called. Build
+one argument tuple—never a shell command string—with explicit dataset,
+configuration, base-model, output, and optional resume paths. A non-blocking
+lock enforces one in-flight command per provider instance. The runner receives
+the recipe provenance, concurrency limit `1`, timeout, and output cap.
+
+Call the runner exactly once. There is no retry, fallback, polling,
+provisioning, upload, provider application-programming interface (API), network,
+subprocess, credential, conversion, promotion, Reader, or user-interface code
+here. A local CUDA runner and a pre-provisioned rented-machine runner may both
+implement the same injected protocol outside this module.
+
+Timeout and cancellation are typed failures. Authentication, quota, rate-limit,
+abuse, and repeated-error signals stop immediately as `CommandSafetyStop`.
+Nonzero exit status, excessive captured output, unexpected runner exceptions,
+and malformed results are also typed; none triggers another attempt.
+
+### Outputs
+
+- One immutable `CommandPlan` handed to the runner.
+- One `TrainedCheckpoint` mapped from a valid successful `CommandResult`.
+
+The runner owns actual execution and must enforce the supplied timeout,
+cancellation, output capture, and environment. This module never claims those
+controls ran merely because it placed them in the plan.
+
+### Human check
+
+Before allowing a real runner, print and inspect the `CommandPlan`. Confirm the
+recipe revision, target, dataset/config paths, base model, environment entries,
+timeout, cost approval, checkpoint directory, and resume path are the exact
+approved values. Confirm no private path or credential appears unexpectedly.
+
+### Version and tests
+
+MINOR (`v0.7.0`): additive provider capability behind the existing training
+interface; no schema migration. `tests/voice_studio/test_cuda_command_provider.py`
+uses only injected in-memory runners and makes no command, network, vendor,
+credential, installation, or GPU call.
