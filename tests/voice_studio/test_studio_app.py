@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from voiceclonegpt.shared import integration_seam
+from voiceclonegpt.recording.capture import CapturedPcm
 from voiceclonegpt.studio_app.core import StudioSession
 
 
@@ -129,15 +130,41 @@ class TestStudioSession:
         with pytest.raises(ValueError):
             StudioSession().generate_recording_script(tmp_path)
 
-    def test_record_is_a_placeholder(self, source_file):
+    def test_record_without_input_reports_unavailability(self, source_file):
         session = StudioSession()
         session.load_script(source_file)
-        assert "not implemented" in session.record_line(0).lower()
+        assert "unavailable" in session.record_line(0).lower()
 
     def test_record_without_selection_is_safe(self, source_file):
         session = StudioSession()
         session.load_script(source_file)
         assert "select" in session.record_line(-1).lower()
+
+    def test_record_selected_line_uses_an_injected_capture_port(self, source_file, tmp_path):
+        calls = []
+
+        def capture():
+            calls.append(True)
+            return CapturedPcm(b"\x00\x00", 24_000, 1, 2)
+
+        session = StudioSession(
+            capture=capture, recording_dir=tmp_path, voice_id="alex"
+        )
+        session.load_script(source_file)
+
+        message = session.record_line(0)
+
+        assert calls == [True]
+        assert (tmp_path / "line-001.wav").is_file()
+        assert "captured" in message.lower()
+
+    def test_record_without_a_capture_port_does_not_write(self, source_file, tmp_path):
+        session = StudioSession(recording_dir=tmp_path)
+        session.load_script(source_file)
+        before = sorted(tmp_path.iterdir())
+
+        assert "unavailable" in session.record_line(0).lower()
+        assert sorted(tmp_path.iterdir()) == before
 
 
 class TestIntegrationSeam:
@@ -312,4 +339,3 @@ class TestHeadlessDisplaySeam:
 
         assert call not in source
         assert source.count(default) == 1
-

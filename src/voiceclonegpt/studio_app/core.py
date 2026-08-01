@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List, Optional
 
 from voiceclonegpt.ingestion.parsers import parse_source_file, split_into_sentences
+from voiceclonegpt.recording.capture import CaptureError, capture_session
 from voiceclonegpt.recording.script_generator import ScriptOutput, generate_script
 from voiceclonegpt.shared.integration_seam import emit_app_event
 from voiceclonegpt.shared.styles import CANONICAL_STYLES
@@ -23,9 +24,12 @@ class LoadedScript:
 class StudioSession:
     """Holds what the Studio window is currently working on."""
 
-    def __init__(self) -> None:
+    def __init__(self, capture=None, recording_dir=None, voice_id: str = "local") -> None:
         self.script: Optional[LoadedScript] = None
         self.last_output: Optional[ScriptOutput] = None
+        self._capture = capture
+        self._recording_dir = Path(recording_dir) if recording_dir is not None else None
+        self._voice_id = voice_id
 
     @property
     def styles(self) -> List[str]:
@@ -65,15 +69,28 @@ class StudioSession:
         return output
 
     def record_line(self, index: int) -> str:
-        """Placeholder for recording. No capture backend exists yet.
-
-        Returns a message for the UI to display rather than raising, so the
-        button is safe to press.
-        """
+        """Capture the selected line only through an injected local port."""
         if self.script is None:
             return "Load a script file first."
         if not 0 <= index < len(self.script.lines):
             return "Select a line to record."
+        if self._capture is None or self._recording_dir is None:
+            return "Local recording input is unavailable."
         emit_app_event(APP_NAME, "record_requested", {"line_index": index})
-        return f"Recording is not implemented yet (line {index + 1})."
-
+        take_id = f"line-{index + 1:03d}"
+        try:
+            result = capture_session(
+                self._recording_dir,
+                session_id="studio-session",
+                voice_id=self._voice_id,
+                capture=self._capture,
+                take_id=take_id,
+            )
+        except CaptureError as exc:
+            return f"Recording failed: {exc}"
+        emit_app_event(
+            APP_NAME,
+            "recording_captured",
+            {"line_index": index, "audio": str(result.wav_path)},
+        )
+        return f"Captured line {index + 1}: {result.wav_path.name}"
