@@ -210,3 +210,51 @@ and gate.
 exist only in this worktree, as does everything else in the alignment chain
 except `marker_parser` and `overlap_gate`. This module cannot be integrated
 before them, and its tests will not collect in a `main` checkout.
+
+## Split planning
+
+`split_plan.py` answers the question `dataset_rows` only validates: *which*
+split a session belongs to. `plan_splits(session_ids, *, ratios=SPLIT_RATIOS)`
+returns a frozen `SplitPlan` carrying `assignments`, `counts`, and the `ratios`
+that were asked for; `split_for(plan, session_id)` looks one up and raises on
+an unknown session rather than defaulting to `train` — a silent default is
+exactly how a test clip reaches the training set.
+
+Assignment is **sorted largest-remainder**, not hashed. Ids are validated,
+refused if blank, non-string, or duplicated, then sorted by bytes. Each split
+takes the whole part of its share; leftover seats go one each to the largest
+fractional remainders, ties broken by `SPLITS` order. Sessions then fill
+`train`, `validation`, `test` in sorted order. A hashed assignment would be
+just as stable, but nobody can verify it by reading the manifest — this one is
+checkable with a pencil.
+
+Small corpora land **entirely in `train`**: at 80/10/10, one, two, and three
+sessions all go to `train`; `validation` first appears at four and `test` at
+seven. That is the honest outcome — a one-clip test split produces a number
+nobody should quote.
+
+`SplitPlan.__post_init__` applies every builder rule, so direct construction
+faces the checks `plan_splits` does: exact split keys on `counts` and `ratios`,
+finite positive ratios summing to one, non-negative integer counts (`bool`
+excluded), assignments naming only real splits with non-blank string ids, and
+`counts` agreeing with the assignments they summarize. A rule only the builder
+enforced would be no rule at all — `SplitPlan` is public, and a hand-built plan
+claiming test sessions it never assigned would reshape a dataset manifest.
+
+Session exclusivity is structural: each id is assigned once, so a plan-derived
+manifest cannot trip `check_session_exclusive_splits`. That check stays the
+authority for manifests built any other way and is not restated here. The split
+vocabulary is imported from `dataset_rows.SPLITS`, so it keeps one home.
+
+Pure: no hashing, randomness, clock, filesystem, network, or model import.
+`bool` is excluded from every ratio check, and ratios may drift from 1.0 by
+`RATIO_TOLERANCE` so three thirds are accepted.
+
+TDD evidence (measured at this worktree):
+
+    focused: PYTHONPATH=src python3 -m pytest \
+      tests/voice_studio/test_split_plan.py \
+      tests/voice_studio/test_split_plan_safety.py -q
+      137 passed (50 + 87)
+    baseline (both ignored): 1715 passed, 9 skipped
+    full suite:              1852 passed, 9 skipped
