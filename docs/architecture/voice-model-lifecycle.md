@@ -3,8 +3,8 @@ type: architecture-contract
 contract: voice-model-lifecycle
 contract_version: 1.0.0
 status: accepted-for-scaffolding
-software_release: 0.1.1
-version_impact: patch
+software_release: 0.8.0
+version_impact: minor
 migration_required: false
 usage_scope: personal-noncommercial
 owners:
@@ -263,6 +263,20 @@ duration, performance, generated previews, differences from source-runtime
 output, and human decision. A variant is selectable only when
 `decision: accepted`, mandatory parity thresholds pass, and approval identifies
 the exact source and runtime checksums.
+
+The provider-neutral `runtime_parity` seam first calls
+`evaluate(RuntimeParityRequest, RuntimeParityEvaluator)`. The request binds the
+exact source-release, runtime-candidate, and parity-set SHA-256 values plus each
+ordered prompt, source-audio checksum, and mandatory metric threshold. The
+evaluator returns candidate-audio checksums and measurements; even when every
+metric passes, the resulting report is always `pending_listening`.
+
+Only `approve(RuntimeEvaluationReport, ListeningApproval)` can produce an
+accepted report. Approval requires a named listener, a time-zone-aware
+timestamp, every ordered prompt id, and exact source, candidate, parity-set,
+and report checksums. Missing or failed metrics, partial listening, or changed
+evidence fails closed. This seam has no runtime registration or bundle
+publication authority; those remain later, separately wired stages.
 
 ## Bundle Contract v1
 
