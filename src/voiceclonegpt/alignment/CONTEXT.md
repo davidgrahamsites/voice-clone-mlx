@@ -82,3 +82,27 @@ $ git diff --check
 eight styles, round-trip through the generated phrase, the `netural` alias in
 both directions, case/article/punctuation/whitespace variants, embedded-prose
 rejection, unknown styles, non-string input, and the frozen result.
+
+## Marker windows
+
+`marker_windows.py` turns timestamped transcript segments into the time span
+each style governs. `split_style_windows(segments, recording_end=None)` reuses
+the single marker parser; it does not decode audio or run Whisper.
+
+Each marker is removed from the content. A window starts at the marker's end
+and ends at the next marker's start, or at the supplied recording end, or at
+the last transcript segment. Gaps are allowed, but overlapping transcript
+segments are rejected because clipping would be ambiguous. A transcript with
+no markers returns an explicit `no_markers` result. A marker with no content
+after it is rejected rather than producing a zero-length training clip.
+
+Inputs are copied and sorted without mutation. Times must be finite,
+non-negative, and start before end; an explicit recording end is validated
+even when the transcript is empty. Results are frozen dataclasses, and
+malformed input raises `MarkerWindowError`.
+
+TDD evidence:
+
+    focused suite: 73 passed
+    full suite with this seam: 820 passed, 9 skipped
+    full suite with this seam and UI opt-in: 829 passed
