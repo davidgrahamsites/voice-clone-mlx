@@ -57,17 +57,6 @@ class TestTextParsing:
         finally:
             path.unlink()
 
-    def test_pdf_format_not_yet_implemented(self):
-        """Should raise NotImplementedError for .pdf."""
-        with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as f:
-            path = Path(f.name)
-
-        try:
-            with pytest.raises(NotImplementedError):
-                parse_source_file(path)
-        finally:
-            path.unlink()
-
 
 class TestDocxParsing:
     """Test .docx file parsing."""

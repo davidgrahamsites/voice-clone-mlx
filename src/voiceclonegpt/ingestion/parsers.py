@@ -12,6 +12,11 @@ MAX_DOCX_UNCOMPRESSED_BYTES = 200 * 1024 * 1024
 MAX_DOCX_COMPRESSION_RATIO = 200
 MAX_DOCX_TEXT_CHARS = 5_000_000
 
+# Resource limits for .pdf ingestion.
+MAX_PDF_FILE_BYTES = 50 * 1024 * 1024
+MAX_PDF_PAGES = 2000
+MAX_PDF_TEXT_CHARS = 5_000_000
+
 
 def parse_source_file(file_path: Path) -> str:
     """Parse a source file and extract text content.
@@ -38,7 +43,7 @@ def parse_source_file(file_path: Path) -> str:
     elif suffix == ".docx":
         return _parse_docx(file_path)
     elif suffix == ".pdf":
-        raise NotImplementedError("PDF support coming soon")
+        return _parse_pdf(file_path)
     else:
         raise ValueError(
             f"Unsupported file format: {suffix}. "
@@ -127,6 +132,116 @@ def _parse_docx(file_path: Path) -> str:
         raise ValueError(
             f"DOCX extracted text too large: {len(text)} characters "
             f"(limit {MAX_DOCX_TEXT_CHARS})"
+        )
+
+    return text
+
+
+def _default_pdf_reader(file_path: Path):
+    """Open a PDF with pypdf, the declared optional dependency.
+
+    Args:
+        file_path: Path to the .pdf file
+
+    Returns:
+        An object exposing `.pages`, each with `.extract_text()`
+
+    Raises:
+        ImportError: If pypdf is not installed
+    """
+    try:
+        from pypdf import PdfReader
+    except ImportError as exc:
+        raise ImportError(
+            "Reading .pdf files requires the pypdf package. "
+            "Install it with: pip install pypdf"
+        ) from exc
+
+    return PdfReader(str(file_path))
+
+
+def _parse_pdf(file_path: Path, reader_factory=None) -> str:
+    """Extract text from a text-based PDF.
+
+    Scanned (image-only) PDFs are rejected rather than silently returning
+    nothing; OCR is out of scope.
+
+    Args:
+        file_path: Path to the .pdf file
+        reader_factory: Callable returning a reader for the path. Defaults to
+            `_default_pdf_reader` (pypdf); injectable for tests.
+
+    Returns:
+        Extracted text, one non-empty page per line group
+
+    Raises:
+        ImportError: If pypdf is needed but not installed
+        ValueError: If the file exceeds a limit, is malformed, has no pages,
+            or contains no extractable text
+    """
+    size = file_path.stat().st_size
+    if size > MAX_PDF_FILE_BYTES:
+        raise ValueError(
+            f"PDF file too large: {size} bytes (limit {MAX_PDF_FILE_BYTES})"
+        )
+
+    if reader_factory is None:
+        reader_factory = _default_pdf_reader
+
+    try:
+        reader = reader_factory(file_path)
+        pages = list(reader.pages)
+    except ImportError:
+        raise
+    except Exception as exc:
+        # Includes ValueError from the PDF library: normalize it, since a
+        # library ValueError means "unreadable file", not one of our limits.
+        raise ValueError(
+            f"File is not a readable PDF: {file_path}"
+        ) from exc
+
+    if not pages:
+        raise ValueError(f"PDF has no pages: {file_path}")
+
+    if len(pages) > MAX_PDF_PAGES:
+        raise ValueError(
+            f"PDF has too many pages: {len(pages)} (limit {MAX_PDF_PAGES})"
+        )
+
+    # Accumulate page by page so a document that blows the text budget is
+    # abandoned at the offending page, not after extracting all of it.
+    chunks = []
+    total_chars = 0
+
+    for page in pages:
+        try:
+            page_text = page.extract_text()
+        except Exception as exc:
+            raise ValueError(
+                f"File is not a readable PDF: {file_path}"
+            ) from exc
+
+        if not page_text or not page_text.strip():
+            continue
+
+        chunk = page_text.strip()
+        chunks.append(chunk)
+        total_chars += len(chunk) + (1 if len(chunks) > 1 else 0)
+
+        # Raised outside the extraction try so it is never normalized away.
+        if total_chars > MAX_PDF_TEXT_CHARS:
+            raise ValueError(
+                f"PDF extracted text too large: exceeded "
+                f"{MAX_PDF_TEXT_CHARS} characters"
+            )
+
+    text = "\n".join(chunks)
+
+    if not text:
+        raise ValueError(
+            f"PDF contains no extractable text (it is likely scanned): "
+            f"{file_path}. OCR is not supported; supply a text-based PDF, "
+            f"or export the document as .txt or .docx."
         )
 
     return text
