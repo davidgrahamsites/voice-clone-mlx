@@ -176,3 +176,30 @@ TDD evidence (measured after integration):
     focused suite: 168 passed (98 + 70 across two modules)
     full suite: 1144 passed, 9 skipped
     UI opt-in suite: 1153 passed
+
+## Script aligner
+
+`script_aligner.py` pairs one validated style window with the expected
+utterances for that style. `align_window(window, transcript,
+expected_utterances, master_audio=...)` uses chronological order only: the
+nth expected utterance pairs with the nth transcript segment inside the window.
+It does not guess with fuzzy matching or reorder evidence.
+
+Every result is a pending `AlignmentRow`. Mismatches remain reviewable through
+the fixed reasons `expected_missing`, `observed_surplus`,
+`text_mismatch`, and `outside_window`; `needs_review` is therefore a
+pending row with reasons, never a fourth review state. Stored observed text is
+verbatim, while comparison collapses whitespace and case-folds without
+discarding punctuation. Surplus evidence is attached to the final expected row;
+observations with no expected utterances are rejected because there is no row
+to carry the evidence.
+
+The seam reuses `StyleWindow`, `Transcript`, and `AlignmentRow` rather
+than defining duplicates. It performs no audio, model, filesystem, clock,
+network, or process work.
+
+TDD evidence (measured after integration):
+
+    focused command: 59 passed (44 + 15)
+    full suite: 1203 passed, 9 skipped
+    UI opt-in suite: 1212 passed
