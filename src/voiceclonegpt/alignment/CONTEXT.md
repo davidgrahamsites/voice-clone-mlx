@@ -106,3 +106,24 @@ TDD evidence:
     focused suite: 73 passed
     full suite with this seam: 820 passed, 9 skipped
     full suite with this seam and UI opt-in: 829 passed
+
+## Whisper MLX invocation plan
+
+`whisper_plan.py` builds, but never runs, the local command that a later
+runner can use with the installed MLX Whisper package. It requires an existing
+audio file, model path, and output directory. Remote-looking paths, missing
+assets, directories in the wrong role, invalid language values, and non-path
+inputs are refused before an argument list is returned.
+
+The model path is always explicit, so a Hub identifier cannot silently trigger
+a download. The plan uses the current interpreter (`sys.executable`) with
+`-m mlx_whisper`, JSON output, the local model, output directory, optional
+language, and the audio path. It imports no MLX package and starts no process;
+a separate runner remains responsible for execution and review.
+
+TDD evidence:
+
+    focused suite: 62 passed
+    baseline before this seam: 820 passed, 9 skipped
+    after this seam: 882 passed, 9 skipped
+    after this seam with UI opt-in: 891 passed
