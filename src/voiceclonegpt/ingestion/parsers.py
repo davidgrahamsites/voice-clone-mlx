@@ -4,6 +4,8 @@ import zipfile
 from pathlib import Path
 from typing import List
 
+from voiceclonegpt.ingestion import web
+
 # Resource limits for .docx ingestion. A .docx is a ZIP archive, so an untrusted
 # file can be a zip bomb; these bound the work before anything is decompressed.
 MAX_DOCX_FILE_BYTES = 50 * 1024 * 1024
@@ -31,6 +33,9 @@ def parse_source_file(file_path: Path) -> str:
         FileNotFoundError: If file doesn't exist
         ValueError: If file format is not supported
     """
+    if web.is_url(file_path):
+        return web.fetch_url(str(file_path))
+
     file_path = Path(file_path)
 
     if not file_path.exists():
