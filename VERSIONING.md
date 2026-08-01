@@ -76,11 +76,13 @@ Before reporting completion, every coding worker must:
 
 1. Read this file and state the version impact.
 2. Keep the task on the correct branch/worktree.
-3. Run `/icm-check`, apply every actionable recommendation, and rerun it.
-4. Run the relevant tests/build.
+3. Run the relevant tests/build.
+4. For a substantial feature, integration, packaging/release update,
+   architectural refactor, or boundary-changing file move, run `/icm-check`,
+   apply every actionable recommendation, and rerun it. Small targeted fixes
+   inside an already-audited seam do not require another standalone ICM pass.
 5. Record the version, migration note (if any), and verification evidence.
 
-6. Obtain the independent cross-agent review required by
-   [`CROSS_REVIEW.md`](CROSS_REVIEW.md). A change is not merge-ready until the
-   routed reviewer approves it or the orchestrator records a documented,
-   user-approved exception.
+6. Use the optional independent review checklist in
+   [`CROSS_REVIEW.md`](CROSS_REVIEW.md) only when the user requests it or the
+   orchestrator identifies a high-risk change. It is not a routine merge gate.

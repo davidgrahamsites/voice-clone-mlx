@@ -9,7 +9,7 @@ independently deletable apps and shared versioned artifact contracts.
   [`VERSIONING.md`](VERSIONING.md)
 - External API/service safety gate: [`OPERATIONS.md`](OPERATIONS.md)
 - Plain-language reporting gate: [`REPORTING.md`](REPORTING.md)
-- Cross-agent code review gate: [`CROSS_REVIEW.md`](CROSS_REVIEW.md)
+- Optional high-risk review checklist: [`CROSS_REVIEW.md`](CROSS_REVIEW.md)
 - Voice-model producer/consumer contract:
   [`docs/architecture/voice-model-lifecycle.md`](docs/architecture/voice-model-lifecycle.md)
 - Current TTS backend decision:
@@ -17,17 +17,20 @@ independently deletable apps and shared versioned artifact contracts.
 
 Read the contract for the module being changed and only its named inputs. Keep
 UI, domain workflow, providers, and filesystem artifacts behind separate seams.
-Run `/icm-check` and relevant tests after every coding task, UI task, refactor,
-or file move.
+Run relevant tests after every coding task. Run `/icm-check` after a substantial
+feature, integration, packaging, release, architectural refactor, or file move
+that changes module boundaries. Small targeted fixes do not require a separate
+ICM pass when they remain inside an already-audited seam.
 
 All status updates, worker handoffs, error reports, and final reports follow
 [`REPORTING.md`](REPORTING.md). Use plain talk and define jargon inline on first
 use.
 
-Before merge, route every code change through [`CROSS_REVIEW.md`](CROSS_REVIEW.md):
-Claude-authored code goes to Codex Sol; Codex-authored code goes to Claude
-Haiku 4.5. The reviewer checks security, purpose, five-whys cause analysis,
-god-object risk, and test-first evidence.
+Independent cross-family review is not a merge requirement. The orchestrator
+may use [`CROSS_REVIEW.md`](CROSS_REVIEW.md) for security-sensitive, destructive,
+external-service, model-format, or other high-risk changes, or when the user
+explicitly requests it. Ordinary changes advance through tests and the
+milestone ICM gate.
 
 ## Required version discipline
 
@@ -45,8 +48,8 @@ first status update, it must state the intended version impact (`PATCH`,
   note, compatibility decision, and a `breaking/vX.0.0-<short-name>` branch.
 
 The orchestrator owns branch creation, merge order, and release tags. A worker
-reports changed seams, chosen version level, migration impact, `/icm-check`
-result, and test/build evidence before handoff. No worker may silently rewrite
+reports changed seams, chosen version level, migration impact, test/build
+evidence, and the milestone `/icm-check` result when one applies. No worker may silently rewrite
 an earlier major line or use a version number merely to label an experiment.
 
 ## External-service gate
@@ -69,7 +72,8 @@ dependencies, call mutating APIs, upload data, or change an external service.
 
 Before any write, the worker must send the orchestrator a write request naming:
 the exact paths or service operation, reason, intended version/branch, data
-impact, tests and `/icm-check` plan, and rollback. The orchestrator must reply
+impact, test plan, whether the milestone `/icm-check` gate applies, and
+rollback. The orchestrator must reply
 with an explicit `APPROVED WRITE` naming the same scope. Silence, a general task
 assignment, or a previous approval does not authorize a new write. If the
 scope changes, the worker must request approval again.

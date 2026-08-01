@@ -4,6 +4,10 @@ All project reporting must be understandable without specialist knowledge.
 
 ## Required style
 
+- Every status update begins with the current estimated percentage of the
+  entire project that is finished. Keep the estimate honest and change it only
+  when verified work changes the remaining path to the real voice-model round
+  trip.
 - Lead with what happened, what it means, and what happens next.
 - Use ordinary words whenever they are accurate.
 - Define every unavoidable technical term inline the first time it appears.

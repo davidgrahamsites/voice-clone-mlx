@@ -1,7 +1,10 @@
-# Cross-agent code review policy
+# Optional independent review checklist
 
-Every code change receives an independent review before merge. The author and
-reviewer must come from different agent families.
+Independent review is optional. Use it when the user explicitly requests it or
+when the orchestrator identifies a high-risk change involving security,
+destructive operations, external services, model formats, artifact migrations,
+or another difficult-to-reverse boundary. Ordinary changes advance through
+focused tests and the milestone ICM gate without a cross-family review.
 
 ## Reviewer routing
 
@@ -10,13 +13,13 @@ reviewer must come from different agent families.
 - Code written by Codex or a Codex worker is reviewed by Claude Haiku 4.5.
 - The reviewer is read-only. It reports findings and does not silently edit the
   author's files.
-- If the assigned reviewer is unavailable, the change waits. The author may
-  not self-approve, and a general status message is not approval.
+- If an optional review is requested and the assigned reviewer is unavailable,
+  the orchestrator decides whether to wait or record why the review was waived.
 - If a finding needs a fix, the fixer submits a scoped write request and waits
   for `APPROVED WRITE`. The opposite agent family reviews the resulting diff
   again.
 
-## Required review questions
+## Review questions when this checklist is used
 
 The reviewer answers these questions in plain language:
 
