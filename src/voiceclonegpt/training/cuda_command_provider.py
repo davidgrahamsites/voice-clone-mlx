@@ -223,6 +223,10 @@ def _translate_runner_stop(exc: CommandRunnerStopped) -> CommandExecutionFailed:
         return CommandTimedOut(f"CUDA training command timed out: {exc}")
     if exc.kind == "cancelled":
         return CommandCancelled(f"CUDA training command stopped (cancelled): {exc}")
+    if exc.kind == "output_limit":
+        return CommandOutputLimitExceeded(
+            f"CUDA training command stopped (output_limit): {exc}"
+        )
     if exc.kind in {
         "authentication",
         "quota",

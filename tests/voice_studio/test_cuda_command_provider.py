@@ -296,6 +296,7 @@ def test_runner_timeout_is_typed_and_not_retried():
     ("kind", "error_type"),
     (
         ("cancelled", CommandCancelled),
+        ("output_limit", CommandOutputLimitExceeded),
         ("authentication", CommandSafetyStop),
         ("quota", CommandSafetyStop),
         ("rate_limit", CommandSafetyStop),
