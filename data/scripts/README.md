@@ -1,5 +1,10 @@
 # Recording scripts
 
+- [`voice_training_script_30_minutes.md`](voice_training_script_30_minutes.md)
+  is the ready-to-read two-session pilot used before any real training spend.
+- [`pilot_recording_script.md`](pilot_recording_script.md) is the shorter
+  recording-chain check.
+
 Voice Studio stores generated recording scripts here. Each script should have:
 
 - a human-readable Markdown teleprompter file;
