@@ -15,18 +15,20 @@ caching. Those belong to the modules named in
 ## Inputs
 
 - A runtime id, as it appears in a bundle's `runtime_variants[].id`.
-- Adapter factories registered by backend packages at import time.
+- Adapter instances, registered explicitly by the composition root.
 
 Do NOT load: bundles, manifests, model weights, app state, or ingestion code.
 
 ## Process
 
-1. A backend registers a factory under an explicit id.
-2. A caller asks for that id and receives a **fresh** adapter instance.
-3. An unregistered id raises `UnknownRuntimeError` naming the available ids.
+1. A composition root registers an adapter instance under an explicit id.
+2. A caller asks for that id and receives **that same instance** on every call.
+3. An unregistered id raises `RuntimeRegistrationError` naming the unknown id.
+   It does not list what is available — the caller asked for something exact.
 
-Registration refuses to overwrite an existing id unless `replace=True` is
-passed, so import order can never silently swap the backend behind a bundle.
+Registration refuses to overwrite an existing id at all: there is no `replace`
+parameter, and a duplicate id always raises. Nothing can silently swap the
+backend behind a bundle.
 
 An adapter satisfies the shape the lifecycle contract calls
 `VoiceModelLoading` / `SpeechSynthesizing`:
@@ -38,7 +40,8 @@ synthesize(handle, text) -> bytes   # WAV
 
 ## Outputs
 
-- Adapter instances, and `available()` — the sorted list of registered ids.
+- The registered adapter instances, and `ids()` — a tuple of the registered ids
+  in insertion order.
 
 ## The null runtime
 
@@ -383,16 +386,17 @@ checked:  ('dependency', 'registration', 'config')
 | Question | Answered by |
 |---|---|
 | is the backend installed? | `importlib.util.find_spec` — locates without importing |
-| can this runtime be selected? | the registry — `default_registry().available()` here, `RuntimeRegistry.ids()` on `main` (see below) |
+| can this runtime be selected? | the registry — `RuntimeRegistry.ids()` on `fix/v0.6.2-model-roundtrip-contract`, `default_registry().available()` on `claude-script-ingestion` (see below) |
 | is the bundle valid? | `shared.bundle_reader.read_bundle` |
 | is the config usable? | `MlxQwenRuntime.load`, with a **probe loader that raises before any model opens** |
 
 ### Two registry APIs, one question
 
-`main`'s `runtime_registry` and this worktree's have diverged: `main` exposes
-`RuntimeRegistry.ids()` and **no** shared `default_registry()`, while this
-checkout exposes `default_registry()` and `available()`. Integration surfaced
-the mismatch as an `ImportError`.
+Two branches' `runtime_registry` modules have diverged:
+`fix/v0.6.2-model-roundtrip-contract` (this branch) exposes
+`RuntimeRegistry.ids()` and **no** shared `default_registry()`, while
+`claude-script-ingestion` exposes `default_registry()` and `available()`.
+Integration surfaced the mismatch as an `ImportError`.
 
 `_registered_runtimes` therefore imports `default_registry` optionally, falls
 back to `RuntimeRegistry`, and calls whichever lister the object has. The
@@ -401,9 +405,9 @@ asserts this module hard-codes no runtime id and defines no `register`.
 
 Where there is no shared registry, a freshly built one is **empty**, so
 `runtime_not_registered` is reported. That is the honest answer rather than a
-guess: on `main` nothing is registered until a composition root does it, so no
-runtime is selectable process-wide. Verified by executing the module against a
-stand-in exposing only `main`'s surface.
+guess: on `fix/v0.6.2-model-roundtrip-contract` nothing is registered until a
+composition root does it, so no runtime is selectable process-wide. Verified by
+executing the module against a stand-in exposing only that branch's surface.
 
 **This compatibility shim should collapse to one import once the two registries
 are reconciled.** It is a second home for nothing — only for *how to ask*.
