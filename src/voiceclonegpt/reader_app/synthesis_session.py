@@ -1,4 +1,4 @@
-"""Turn text into a WAV take on disk, through the shared round-trip contract.
+"""Turn text into a WAV or MP3 take on disk, through the shared round-trip contract.
 
 One job: validate the request, hand it to
 `voiceclonegpt.shared.roundtrip.run_round_trip`, and write the bytes it
@@ -15,6 +15,8 @@ import os
 import tempfile
 from pathlib import Path
 from typing import Any, Optional
+
+from .audio_export import encode_audio, output_format_for_name
 
 #: Characters that would turn a file name into a path.
 _UNSAFE_IN_NAME = ("/", "\\", "\x00")
@@ -69,6 +71,7 @@ class ReaderSynthesisSession:
         runtime: Any,
         output_dir,
         round_trip=None,
+        audio_encoder=None,
     ) -> None:
         """Args:
         bundle_dir: The exact verified bundle to synthesize from.
@@ -77,12 +80,15 @@ class ReaderSynthesisSession:
         output_dir: Existing directory that every take is written into.
         round_trip: Callable matching `run_round_trip`; defaults to the
             shared contract, imported lazily.
+        audio_encoder: Optional callable `(wav_bytes, format) -> bytes` used to
+            inject a local encoder or a test double for MP3 output.
         """
         self.bundle_dir = bundle_dir
         self.runtime_id = runtime_id
         self.runtime = runtime
         self.output_dir = Path(output_dir)
         self._round_trip = round_trip or _default_round_trip
+        self._audio_encoder = audio_encoder
 
     def synthesize(self, text: str, output_name: str) -> Path:
         """Generate one take and return the path written.
@@ -92,7 +98,7 @@ class ReaderSynthesisSession:
             output_name: Plain file name inside the output directory.
 
         Returns:
-            Path to the written WAV file.
+            Path to the written WAV or MP3 file, based on ``output_name``.
 
         Raises:
             ReaderSynthesisError: Bad input, unsafe name, synthesis failure,
@@ -105,6 +111,11 @@ class ReaderSynthesisSession:
             raise ReaderSynthesisError(
                 f"output name must be a plain file name: {output_name!r}"
             )
+
+        try:
+            output_format = output_format_for_name(output_name)
+        except Exception as exc:
+            raise ReaderSynthesisError(str(exc)) from exc
 
         target = self._checked_target(output_name)
 
@@ -125,7 +136,16 @@ class ReaderSynthesisSession:
                 "synthesis returned no audio bytes"
             )
 
-        self._write_atomically(target, audio)
+        try:
+            encoded = encode_audio(
+                audio,
+                output_format,
+                encoder=self._audio_encoder,
+            )
+        except Exception as exc:
+            raise ReaderSynthesisError(f"audio export failed: {exc}") from exc
+
+        self._write_atomically(target, encoded)
         return target
 
     def _checked_target(self, output_name: str) -> Path:
@@ -201,4 +221,3 @@ class ReaderSynthesisSession:
             raise ReaderSynthesisError(
                 f"could not write {target}: {exc}"
             ) from exc
-

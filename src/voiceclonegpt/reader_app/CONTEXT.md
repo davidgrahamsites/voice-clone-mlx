@@ -37,7 +37,11 @@ window; opening a manifest lists its takes, marking which have audio.
 - `core.py` — `Take`, `load_manifest`, `is_safe_utterance_id`, `find_audio`,
   `Player`. No UI toolkit.
 - `synthesis_session.py` — `ReaderSynthesisSession`, `is_safe_output_name`.
-  Generates takes through the shared round-trip contract. No UI toolkit.
+  Generates WAV or MP3 takes through the shared round-trip contract. No UI
+  toolkit.
+- `audio_export.py` — output-format validation and local WAV-to-MP3 encoding.
+  WAV passes through unchanged; MP3 uses an installed local encoder and never
+  downloads a codec.
 - `synthesis_controller.py` — `ReaderSynthesisController`, `VoiceChoice`.
   Coordinates verified bundle selection, runtime readiness, text input, and
   synthesis requests. No UI toolkit and no backend imports.
@@ -86,9 +90,11 @@ a human listens to real local output.
 ## Synthesis session
 
 `ReaderSynthesisSession(bundle_dir, runtime_id, runtime, output_dir)` turns
-text into a WAV take on disk. `synthesize(text, output_name) -> Path`.
+text into a WAV or MP3 take on disk. `synthesize(text, output_name) -> Path`;
+the filename extension must be `.wav` or `.mp3`.
 
-It owns **only** request validation, the call, and the write. Bundle
+It owns **only** request validation, the call, local format conversion, and the
+write. Bundle
 verification and runtime dispatch belong to `shared.roundtrip`; model loading
 to `synthesis/`; choosing a bundle or runtime to the caller. It never selects,
 downloads, or converts anything.

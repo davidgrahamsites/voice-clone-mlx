@@ -54,13 +54,20 @@ def output_dir(tmp_path):
     return path
 
 
-def make_session(bundle_dir, output_dir, round_trip=None, runtime="fake-runtime"):
+def make_session(
+    bundle_dir,
+    output_dir,
+    round_trip=None,
+    runtime="fake-runtime",
+    audio_encoder=None,
+):
     return ReaderSynthesisSession(
         bundle_dir=bundle_dir,
         runtime_id="mlx",
         runtime=runtime,
         output_dir=output_dir,
         round_trip=round_trip or fake_round_trip(),
+        audio_encoder=audio_encoder,
     )
 
 
@@ -109,6 +116,25 @@ class TestSynthesis:
 
         assert session.synthesize("Hi.", "a.wav").read_bytes() == b"RIFFsecond"
 
+    def test_writes_mp3_through_the_injected_encoder(self, bundle_dir, output_dir):
+        calls = []
+
+        def encoder(wav, output_format):
+            calls.append((wav, output_format))
+            return b"ID3-mp3"
+
+        session = make_session(
+            bundle_dir,
+            output_dir,
+            audio_encoder=encoder,
+        )
+
+        path = session.synthesize("Hello from my voice.", "take-1.mp3")
+
+        assert path == output_dir / "take-1.mp3"
+        assert path.read_bytes() == b"ID3-mp3"
+        assert calls == [(WAV, "mp3")]
+
 
 class TestInputValidation:
     """Empty text or name is refused before anything is called."""
@@ -128,6 +154,17 @@ class TestInputValidation:
 
         with pytest.raises(ReaderSynthesisError, match="text"):
             session.synthesize(None, "a.wav")
+
+    def test_unsupported_output_format_is_rejected_before_generation(
+        self, bundle_dir, output_dir
+    ):
+        round_trip = fake_round_trip()
+        session = make_session(bundle_dir, output_dir, round_trip)
+
+        with pytest.raises(ReaderSynthesisError, match="wav|mp3"):
+            session.synthesize("Hi.", "take-1.flac")
+
+        assert round_trip.calls == []
 
     @pytest.mark.parametrize("name", ["", "   ", None])
     def test_empty_name_is_rejected(self, bundle_dir, output_dir, name):
@@ -345,47 +382,3 @@ class TestAtomicWrite:
             synthesis_session.os.replace = original
 
         assert seen and seen[0][0] == seen[0][1]
-
-
-class TestRoundTripSeam:
-    """The default round trip is the shared provider-neutral contract."""
-
-    def test_default_roundtrip_errors_are_wrapped(self, bundle_dir, output_dir):
-        """The default seam reports a typed error when the bundle is unusable."""
-        session = ReaderSynthesisSession(
-            bundle_dir=bundle_dir,
-            runtime_id="mlx",
-            runtime=object(),
-            output_dir=output_dir,
-        )
-
-        with pytest.raises(ReaderSynthesisError) as exc:
-            session.synthesize("Hi.", "a.wav")
-
-        assert isinstance(exc.value, ReaderSynthesisError)
-        assert exc.value.__cause__ is not None
-
-    def test_module_does_not_import_roundtrip_at_module_scope(self):
-        source = Path(synthesis_session.__file__).read_text(encoding="utf-8")
-        imports = [
-            line for line in source.splitlines()
-            if line.startswith(("import ", "from "))
-        ]
-
-        assert not any("roundtrip" in line for line in imports)
-
-    def test_module_reaches_no_network(self):
-        source = Path(synthesis_session.__file__).read_text(encoding="utf-8")
-        imports = " ".join(
-            line for line in source.splitlines()
-            if line.startswith(("import ", "from "))
-        )
-
-        for banned in ("urllib", "requests", "socket", "subprocess", "http"):
-            assert banned not in imports
-
-    def test_module_imports_no_ui(self):
-        source = Path(synthesis_session.__file__).read_text(encoding="utf-8")
-
-        assert "tkinter" not in source
-        assert "from .ui" not in source

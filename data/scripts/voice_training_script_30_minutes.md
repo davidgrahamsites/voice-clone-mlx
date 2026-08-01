@@ -6,20 +6,47 @@ minute break. Use the same room, recorder, position, distance, and gain in both
 sessions.
 
 Timing target: 2,900 prompt words, four readings of the calibration passage,
-eight spoken style markers, two seconds after each of 166 prompts, three
-seconds after each marker, and two minutes of room tone. At about 145 spoken
-words per minute, the captured material is approximately thirty minutes. A
-slower natural pace may run several minutes longer; do not rush to hit a clock.
-Retakes add capture time but do not add accepted training words because only the
-clean take is retained.
+eight spoken style markers, two seconds after each of 166 numbered prompts,
+three seconds after each marker, and two minutes of room tone. At about 145
+spoken words per minute, the captured material is approximately thirty minutes.
+A slower natural pace may run several minutes longer; do not rush to hit a
+clock. Retakes add capture time but do not add accepted training words because
+only the clean take is retained.
+
+## Exact pause protocol
+
+The word **prompt** means one numbered line such as `NEUTRAL-A-001`. The pause
+rules apply at the end of that line—not after every word, clause, or breath.
+
+| When | What to do | How to measure it |
+| --- | --- | --- |
+| After every numbered prompt | Finish the final word, close your mouth, stay still, and remain silent for **two seconds** before the next prompt. | Count silently: “one-Mississippi, two-Mississippi.” Do not record the counting. |
+| After every spoken style marker | Say the marker once, then remain silent for **three seconds** before the first numbered prompt in that block. | Count silently: “one-Mississippi, two-Mississippi, three-Mississippi.” |
+| After a mistake | Stop speaking, remain silent for two seconds, then reread the entire numbered prompt from its beginning. | Use the same silent two-count. Do not say “retake” or explain the mistake. |
+| Inside a long prompt or calibration passage | Breathe and pause naturally at commas, semicolons, and sentence endings. A short natural breath is expected; the two-second rule does **not** repeat at each internal punctuation mark. | Aim for a normal breath, usually less than two seconds. Never stop in the middle of a word. |
+
+You **may** pause in the middle of a long reading, especially at a full stop or
+semicolon. Keep the recorder running, pause where the punctuation gives you a
+natural landing point, and continue in the same voice and position. Do not add a
+deliberate two- or three-second gap inside every sentence: that would make the
+prosody unnatural and create unnecessary clip boundaries. If you lose your place,
+pause, wait two seconds, and reread that whole prompt so the take can be safely
+identified and reviewed.
+
+If you are unsure whether two seconds have passed, use the silent
+“one-Mississippi, two-Mississippi” count. The exact duration does not need to be
+laboratory-perfect; consistency matters more than a difference of a few tenths
+of a second. A three-second marker pause is a transition, not a performance
+requirement.
 
 ## What to say and what not to say
 
 - Speak only the text after each prompt ID.
 - Do **not** speak prompt IDs, headings, bullets, notes, or pause instructions.
-- At each style block, speak the displayed marker exactly once, then wait three
-  seconds.
-- Wait two seconds after every prompt.
+- At each style block, speak the displayed marker exactly once, then use the
+  three-second marker count above.
+- After **every numbered prompt**, use the silent two-second count above.
+- Inside a long prompt, pause only at natural punctuation as described above.
 - Read naturally. This is coverage material, not a speed or acting contest.
 - If you make a mistake, stop, wait two seconds, and reread the entire prompt.
 - If another person speaks, let the interruption end and continue at the next

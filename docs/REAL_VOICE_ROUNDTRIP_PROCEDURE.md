@@ -26,7 +26,9 @@ Completion means all of the following are true: a reviewed owner-only dataset
 produced a learned checkpoint; that checkpoint was approved; its MLX conversion
 passed the frozen parity set; a complete checksummed bundle was published;
 Voice Reader loaded the exact declared runtime; and a human heard a non-silent
-output that was intelligible and recognizably the owner.
+WAV output that was intelligible and recognizably the owner. Reader can then
+encode that verified WAV locally as MP3 when the output filename ends in
+`.mp3`.
 
 ## Non-negotiable safety rules
 
@@ -214,9 +216,15 @@ Audio terms used below:
 
 1. Do not speak prompt IDs, headings, pause instructions, or notes.
 2. At each style block, say exactly: `This is the <style> reading.`
-3. Wait three seconds after the marker.
-4. Read each prompt naturally and wait two seconds afterward.
-5. If a word is wrong, stop, wait, and reread the whole prompt once.
+3. Wait three seconds after the marker. Count silently: “one-Mississippi,
+   two-Mississippi, three-Mississippi.”
+4. Read each numbered prompt naturally and wait two seconds after the prompt's
+   final word. Count silently: “one-Mississippi, two-Mississippi.” This pause
+   does not repeat after every word, clause, or internal breath.
+5. A long prompt or calibration passage may contain natural breaths at commas,
+   semicolons, and sentence endings. Keep the recorder running; do not insert a
+   deliberate two- or three-second gap at every internal punctuation mark.
+6. If a word is wrong, stop, wait two seconds, and reread the whole prompt once.
 6. If another person speaks over any part, continue only after a clean pause;
    the mixed candidate will be rejected in full.
 7. Stop at a prompt boundary if the voice becomes dry, strained, breathy,

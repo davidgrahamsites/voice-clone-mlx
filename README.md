@@ -1,6 +1,10 @@
-# VoiceCloneGPT
+<h1 align="center">VoiceCloneGPT</h1>
 
 <div align="center">
+
+<img src="docs/assets/voiceclonegpt-banner.svg" alt="VoiceCloneGPT — your words, your voice" width="100%">
+
+<br>
 
 **A private, local-first voice laboratory for turning your own words into a reusable speaking voice.**
 
@@ -12,12 +16,29 @@ audio through a versioned voice-model bundle.
 
 </div>
 
+> [!IMPORTANT]
 > **Honest status:** the application seams, manifests, safety gates, tests, and
 > macOS launchers are in place. The real provider installation, trained-model
 > conversion, and audible trained-model round trip still require a deliberate
 > local verification. The current Reader composition root intentionally keeps a
 > silent placeholder runtime disabled as a model, so silence is never presented
 > as a cloned voice.
+
+## At a glance
+
+| | |
+| --- | --- |
+| **Platform** | Apple Silicon macOS · source-first `.app` launchers |
+| **Privacy** | Local by default; no silent uploads or implicit model downloads |
+| **Pipeline** | Record → transcribe → reject overlap → align → train → read |
+| **Model handoff** | Immutable, checksummed voice bundles with explicit runtime IDs |
+| **Project shape** | Two independently deletable apps with provider-neutral contracts |
+
+<div align="center">
+
+**[Quick start](#run-it-locally)** · **[How it works](#the-workflow)** · **[Safety](#safety-and-privacy-rules)** · **[Repository map](#repository-map)**
+
+</div>
 
 ## What it is
 
@@ -27,7 +48,7 @@ VoiceCloneGPT is a personal, non-commercial tool for two connected jobs:
 | --- | --- |
 | Turn a prepared script or an all-day recording into reviewed, single-speaker training data. | Turn your `.txt`, `.docx`, text-based `.pdf`, or authorized website material into narrated audio. |
 | Use local MLX Whisper resources to transcribe and time-align speech. | Load a selected, verified voice bundle independently of the training app. |
-| Reject a whole clip when another voice overlaps you, rather than quietly keeping contaminated audio. | Generate resumable chunks, preserve provenance, and export WAV audio. |
+| Reject a whole clip when another voice overlaps you, rather than quietly keeping contaminated audio. | Generate resumable chunks, preserve provenance, and export WAV or MP3 audio. |
 | Keep styles such as neutral, warm, energetic, serious, somber, questioning, emphasis, and dialogue attached to the data. | Choose among your own or other consented voice bundles when compatible runtimes exist. |
 
 The durable asset is the dataset: lossless recordings, exact transcripts,
@@ -111,6 +132,24 @@ website material. It keeps extraction separate from synthesis so the imported
 text can be reviewed before any audio is generated. A verified model bundle is
 selected explicitly; the Reader never guesses a compatible runtime.
 
+<details>
+<summary><strong>What the first successful session will look like</strong></summary>
+
+1. Open **Voice Studio** and load the prepared script.
+2. Record the two short pilot sessions with the same microphone position and
+   room setup.
+3. Let local transcription and overlap checks produce a review queue.
+4. Keep only clean, owner-verified takes and inspect the generated manifest.
+5. Run the bounded model smoke test before committing to a full training job.
+6. Open **Voice Reader**, import a small text sample, select the verified bundle,
+   and generate one WAV or MP3 file.
+
+The last step is deliberately gated. Until a human has listened to real output,
+the runtime remains unverified and the Reader must not imply that it is your
+voice.
+
+</details>
+
 ## Run it locally
 
 The project is currently a source workspace with thin `.app` launchers. The
@@ -158,6 +197,25 @@ git diff --check
 The ICM check audits the workspace structure: each module has a defined job,
 inputs, outputs, boundaries, and deletion-safe seams. It is not a substitute
 for listening to generated speech.
+
+Voice Reader accepts an output filename ending in `.wav` or `.mp3`. WAV is the
+lossless runtime output. MP3 is encoded locally from that WAV using the first
+available encoder in this order: LAME, ffmpeg, then macOS `afconvert`. No codec
+is downloaded automatically.
+
+<details>
+<summary><strong>Command reference</strong></summary>
+
+| Goal | Command |
+| --- | --- |
+| Launch Voice Studio | `PYTHONPATH=src python3 -m voiceclonegpt.studio_app` |
+| Launch Voice Reader | `PYTHONPATH=src python3 -m voiceclonegpt.reader_app` |
+| Build both launchers | `python3 scripts/build_apps.py` |
+| Run the Reader tests | `PYTHONPATH=src python3 -m pytest -q tests/voice_reader/` |
+| Run the full test suite | `PYTHONPATH=src python3 -m pytest -q` |
+| Audit ICM structure | `python3 /Users/appleadmin/.codex/skills/icm-check/scripts/icm_check.py .` |
+
+</details>
 
 ## Repository map
 

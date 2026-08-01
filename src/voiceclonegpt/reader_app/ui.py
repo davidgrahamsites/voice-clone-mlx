@@ -111,7 +111,7 @@ class ReaderWindow:
         )
         self.generate_button = ttk.Button(
             generate_row,
-            text="Generate WAV…",
+            text="Generate WAV or MP3…",
             command=self.on_generate,
             state=tk.DISABLED,
         )
@@ -151,7 +151,7 @@ class ReaderWindow:
 
     @staticmethod
     def _ask_output_directory() -> str:
-        return filedialog.askdirectory(title="Choose WAV output folder")
+        return filedialog.askdirectory(title="Choose WAV or MP3 output folder")
 
     def on_choose_bundle(self) -> None:
         path = self.choose_bundle()
