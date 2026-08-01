@@ -8,6 +8,7 @@ manifest once it is loaded.
 import json
 import os
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -188,6 +189,87 @@ class TestReaderWindow:
             source = open(module.__file__, encoding="utf-8").read()
             assert "studio_app" not in source
 
+    def test_generate_enables_only_after_ready_voice_and_text(
+        self, reader_tk_root, tmp_path
+    ):
+        from voiceclonegpt.reader_app.ui import ReaderWindow
+
+        calls = []
+
+        class FakeController:
+            ready = False
+
+            def inspect_bundle(self, path):
+                calls.append(("inspect", Path(path)))
+                return SimpleNamespace(
+                    bundle_id="alex@0.7.0", runtime_ids=("fake_voice",)
+                )
+
+            def select(self, path, runtime_id):
+                calls.append(("select", Path(path), runtime_id))
+                self.ready = True
+                return SimpleNamespace(ready=True, blockers=())
+
+            def set_text(self, text):
+                calls.append(("text", text))
+
+            def synthesize(self, output_dir, output_name):
+                calls.append(("synthesize", Path(output_dir), output_name))
+                return Path(output_dir) / output_name
+
+        controller = FakeController()
+        window = ReaderWindow(
+            reader_tk_root,
+            synthesis_controller=controller,
+            choose_bundle=lambda: str(tmp_path / "alex"),
+            choose_output_dir=lambda: str(tmp_path),
+        )
+
+        assert str(window.generate_button["state"]) == "disabled"
+        window.on_choose_bundle()
+        assert tuple(window.runtime_box["values"]) == ("fake_voice",)
+        assert str(window.generate_button["state"]) == "disabled"
+
+        window.runtime_var.set("fake_voice")
+        window.on_check_voice()
+        assert str(window.generate_button["state"]) == "disabled"
+
+        window.synthesis_text.insert("1.0", "Speak this exact line.")
+        window._sync_generate_state()
+        assert str(window.generate_button["state"]) == "normal"
+        window.on_generate()
+
+        assert calls == [
+            ("inspect", tmp_path / "alex"),
+            ("select", tmp_path / "alex", "fake_voice"),
+            ("text", "Speak this exact line."),
+            ("synthesize", tmp_path, "reader-output.wav"),
+        ]
+
+    def test_text_picker_ingests_through_the_controller(
+        self, reader_tk_root, tmp_path
+    ):
+        from voiceclonegpt.reader_app.ui import ReaderWindow
+
+        text_path = tmp_path / "chapter.txt"
+
+        class FakeController:
+            ready = False
+
+            def ingest_text(self, path):
+                assert Path(path) == text_path
+                return "Imported exact text."
+
+        window = ReaderWindow(
+            reader_tk_root,
+            synthesis_controller=FakeController(),
+            choose_text_file=lambda: str(text_path),
+        )
+
+        window.on_open_text()
+
+        assert window.synthesis_text.get("1.0", "end-1c") == "Imported exact text."
+
 
 class TestHeadlessDisplaySeam:
     """The skip path must actually work and must not hide real failures.
@@ -294,4 +376,3 @@ class TestHeadlessDisplaySeam:
 
         assert call not in source
         assert source.count(default) == 1
-

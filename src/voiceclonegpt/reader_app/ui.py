@@ -24,10 +24,20 @@ class ReaderWindow:
         master: tk.Misc,
         player: Player = None,
         choose_file=None,
+        synthesis_controller=None,
+        choose_bundle=None,
+        choose_text_file=None,
+        choose_output_dir=None,
     ) -> None:
         self.master = master
         self.player = player or Player()
         self.choose_file = choose_file or self._ask_open_filename
+        self.synthesis_controller = synthesis_controller
+        self.choose_bundle = choose_bundle or self._ask_bundle_directory
+        self.choose_text_file = choose_text_file or self._ask_text_filename
+        self.choose_output_dir = choose_output_dir or self._ask_output_directory
+        self.bundle_dir = None
+        self._voice_ready = False
         self.takes = []
         master.title(APP_NAME)
 
@@ -57,6 +67,65 @@ class ReaderWindow:
         self.take_list.pack(fill=tk.BOTH, expand=True)
         self.take_list.bind("<Double-Button-1>", lambda _event: self.on_play())
 
+        synthesis = ttk.LabelFrame(frame, text="Cloned voice synthesis", padding=8)
+        synthesis.pack(fill=tk.X, pady=(10, 0))
+
+        voice_row = ttk.Frame(synthesis)
+        voice_row.pack(fill=tk.X)
+        self.voice_button = ttk.Button(
+            voice_row, text="Choose Voice Bundle…", command=self.on_choose_bundle
+        )
+        self.voice_button.pack(side=tk.LEFT)
+        self.voice_var = tk.StringVar(value="No verified voice selected.")
+        ttk.Label(voice_row, textvariable=self.voice_var).pack(
+            side=tk.LEFT, padx=(8, 0)
+        )
+
+        runtime_row = ttk.Frame(synthesis)
+        runtime_row.pack(fill=tk.X, pady=(6, 0))
+        self.runtime_var = tk.StringVar()
+        self.runtime_box = ttk.Combobox(
+            runtime_row, textvariable=self.runtime_var, state="readonly", width=24
+        )
+        self.runtime_box.pack(side=tk.LEFT)
+        self.runtime_box.bind("<<ComboboxSelected>>", self._invalidate_voice)
+        self.check_voice_button = ttk.Button(
+            runtime_row, text="Check Voice", command=self.on_check_voice
+        )
+        self.check_voice_button.pack(side=tk.LEFT, padx=(8, 0))
+
+        text_row = ttk.Frame(synthesis)
+        text_row.pack(fill=tk.X, pady=(6, 0))
+        ttk.Button(text_row, text="Open Text…", command=self.on_open_text).pack(
+            side=tk.LEFT
+        )
+        self.synthesis_text = tk.Text(synthesis, height=5, wrap=tk.WORD)
+        self.synthesis_text.pack(fill=tk.X, pady=(6, 0))
+        self.synthesis_text.bind("<KeyRelease>", self._sync_generate_state)
+
+        generate_row = ttk.Frame(synthesis)
+        generate_row.pack(fill=tk.X, pady=(6, 0))
+        self.output_name_var = tk.StringVar(value="reader-output.wav")
+        ttk.Entry(generate_row, textvariable=self.output_name_var, width=32).pack(
+            side=tk.LEFT
+        )
+        self.generate_button = ttk.Button(
+            generate_row,
+            text="Generate WAV…",
+            command=self.on_generate,
+            state=tk.DISABLED,
+        )
+        self.generate_button.pack(side=tk.LEFT, padx=(8, 0))
+
+        if self.synthesis_controller is None:
+            for widget in (
+                self.voice_button,
+                self.runtime_box,
+                self.check_voice_button,
+                self.synthesis_text,
+            ):
+                widget.configure(state=tk.DISABLED)
+
         self.status_var = tk.StringVar(
             value="Open a script_session_N.jsonl manifest to begin."
         )
@@ -69,6 +138,109 @@ class ReaderWindow:
         return filedialog.askopenfilename(
             title="Choose a recording manifest", filetypes=[("Manifests", "*.jsonl")]
         )
+
+    @staticmethod
+    def _ask_bundle_directory() -> str:
+        return filedialog.askdirectory(title="Choose a verified voice bundle")
+
+    @staticmethod
+    def _ask_text_filename() -> str:
+        return filedialog.askopenfilename(
+            title="Choose text", filetypes=[("Text files", "*.txt"), ("All files", "*")]
+        )
+
+    @staticmethod
+    def _ask_output_directory() -> str:
+        return filedialog.askdirectory(title="Choose WAV output folder")
+
+    def on_choose_bundle(self) -> None:
+        path = self.choose_bundle()
+        if not path:
+            return
+        self._voice_ready = False
+        try:
+            choice = self.synthesis_controller.inspect_bundle(path)
+        except Exception as exc:
+            self.bundle_dir = None
+            self.runtime_box.configure(values=())
+            self.runtime_var.set("")
+            self.status_var.set(str(exc))
+            self._sync_generate_state()
+            return
+
+        self.bundle_dir = Path(path)
+        self.voice_var.set(choice.bundle_id)
+        self.runtime_box.configure(values=choice.runtime_ids)
+        self.runtime_var.set("")
+        self.status_var.set("Choose a declared runtime, then check readiness.")
+        self._sync_generate_state()
+
+    def on_check_voice(self) -> None:
+        self._voice_ready = False
+        runtime_id = self.runtime_var.get()
+        if self.bundle_dir is None or not runtime_id:
+            self.status_var.set("Choose a bundle and one of its declared runtimes.")
+            return
+        try:
+            report = self.synthesis_controller.select(self.bundle_dir, runtime_id)
+        except Exception as exc:
+            self.status_var.set(str(exc))
+            self._sync_generate_state()
+            return
+
+        if report.ready:
+            self._voice_ready = True
+            self.status_var.set("Voice is verified and ready for local synthesis.")
+        else:
+            blockers = ", ".join(report.blockers) or "verification incomplete"
+            self.status_var.set(f"Voice is not ready: {blockers}.")
+        self._sync_generate_state()
+
+    def on_open_text(self) -> None:
+        path = self.choose_text_file()
+        if not path:
+            return
+        try:
+            text = self.synthesis_controller.ingest_text(path)
+        except Exception as exc:
+            self.status_var.set(str(exc))
+            return
+        self.synthesis_text.delete("1.0", tk.END)
+        self.synthesis_text.insert("1.0", text)
+        self.status_var.set(f"Loaded text from {Path(path)}.")
+        self._sync_generate_state()
+
+    def _sync_generate_state(self, _event=None) -> None:
+        has_text = bool(self.synthesis_text.get("1.0", "end-1c").strip())
+        ready = bool(
+            self.synthesis_controller is not None
+            and self._voice_ready
+            and self.synthesis_controller.ready
+            and has_text
+        )
+        self.generate_button.configure(state=tk.NORMAL if ready else tk.DISABLED)
+
+    def _invalidate_voice(self, _event=None) -> None:
+        """Require readiness again after the displayed runtime changes."""
+        self._voice_ready = False
+        self._sync_generate_state()
+
+    def on_generate(self) -> None:
+        output_dir = self.choose_output_dir()
+        if not output_dir:
+            return
+        try:
+            self.synthesis_controller.set_text(
+                self.synthesis_text.get("1.0", "end-1c")
+            )
+            output = self.synthesis_controller.synthesize(
+                output_dir, self.output_name_var.get()
+            )
+        except Exception as exc:
+            self.status_var.set(str(exc))
+            self._sync_generate_state()
+            return
+        self.status_var.set(f"Generated {output}.")
 
     def on_open(self) -> None:
         path = self.choose_file()
@@ -107,11 +279,12 @@ class ReaderWindow:
 
 def build_app() -> tk.Tk:
     """Create the root window and its Reader UI without starting the event loop."""
+    from .composition import build_synthesis_controller
+
     root = tk.Tk()
-    ReaderWindow(root)
+    ReaderWindow(root, synthesis_controller=build_synthesis_controller())
     return root
 
 
 def main() -> None:
     build_app().mainloop()
-

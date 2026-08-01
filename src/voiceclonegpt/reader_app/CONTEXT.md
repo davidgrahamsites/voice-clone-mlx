@@ -38,6 +38,9 @@ window; opening a manifest lists its takes, marking which have audio.
   `Player`. No UI toolkit.
 - `synthesis_session.py` — `ReaderSynthesisSession`, `is_safe_output_name`.
   Generates takes through the shared round-trip contract. No UI toolkit.
+- `synthesis_controller.py` — `ReaderSynthesisController`, `VoiceChoice`.
+  Coordinates verified bundle selection, runtime readiness, text input, and
+  synthesis requests. No UI toolkit and no backend imports.
 - `manifest_roundtrip.py` — `generate_missing_takes`. Fills in a script
   manifest's missing audio, beside the manifest. No UI toolkit.
 - `ui.py` — `ReaderWindow` (Tk widgets only) plus `build_app()` / `main()`.
@@ -54,6 +57,31 @@ window; opening a manifest lists its takes, marking which have audio.
 - `ReaderSynthesisSession(..., round_trip=...)` — inject the round-trip
   callable. The default lazily imports
   `voiceclonegpt.shared.roundtrip.run_round_trip`.
+- `ReaderSynthesisController(registry=..., verified_runtime_ids=...,
+  bundle_reader=..., readiness=..., session_factory=...)` — inject every
+  provider-facing boundary. Production passes no verified real runtime ids;
+  tests use fakes without opening a model.
+
+## Gated cloned-voice synthesis
+
+`ReaderSynthesisController.inspect_bundle(bundle_dir) -> VoiceChoice` verifies
+the bundle checksum before showing its identity and declared runtime ids.
+`select(bundle_dir, runtime_id) -> ReadinessReport` clears any older selection,
+then requires that the runtime is declared by that verified manifest, is not
+the silent `null` placeholder, is explicitly human-verified, is registered,
+and passes every no-load readiness check. Any failed or incomplete check leaves
+`ready` false.
+
+Text may be entered with `set_text(text)` or read exactly as UTF-8 with
+`ingest_text(path)`. `synthesize(output_dir, output_name) -> Path` delegates to
+`ReaderSynthesisSession`, preserving its confined atomic-write rules. The Tk
+window keeps Generate disabled until both a voice is ready and text is
+nonblank. Choosing another bundle or runtime invalidates that UI state.
+
+The production composition root still registers only `null` and passes an
+empty `verified_runtime_ids` set. `MlxQwenRuntime` is therefore not selectable;
+registration and the verification allow-list must change together only after
+a human listens to real local output.
 
 ## Synthesis session
 
@@ -147,6 +175,7 @@ Two modules, split by responsibility:
 | `tests/voice_reader/test_manifest_roundtrip.py` | 37 tests: generation and ordering, resume across every accepted format, failure and re-run, input validation, and that no borrowed rule is re-implemented | no |
 | `tests/voice_reader/test_manifest_roundtrip_writer.py` | 13 tests: placement beside the manifest, and that the writer cannot be bypassed | no |
 | `tests/voice_reader/test_synthesis_session.py` | 41 tests: the round-trip call, input validation, output confinement, typed failures, atomic replacement, and the lazy round-trip seam | no |
+| `tests/voice_reader/test_synthesis_controller.py` | verified-before-load ordering, declared/non-null/human-verified/registered/readiness gates, exact text/runtime/bundle flow, text ingestion, and non-silent fake WAV output | no |
 
 The security module deliberately imports no Tk and reads no environment
 variable: the rules that keep an untrusted manifest from reaching outside the
