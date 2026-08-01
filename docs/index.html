@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="VoiceCloneGPT is a private, local-first macOS workspace for building and using an expressive personal voice model.">
+  <meta name="theme-color" content="#111210">
+  <title>VoiceCloneGPT — your words, your voice</title>
+  <style>
+    :root {
+      --ink: #111210;
+      --paper: #f2efe6;
+      --paper-deep: #e7e2d5;
+      --muted: #716e64;
+      --line: rgba(17, 18, 16, .16);
+      --lime: #c8ef77;
+      --coral: #f27f68;
+      --blue: #9bd7dd;
+      --max: 1180px;
+      --serif: Georgia, 'Times New Roman', serif;
+      --sans: 'Avenir Next', Avenir, 'Helvetica Neue', Helvetica, sans-serif;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: var(--sans);
+      line-height: 1.55;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .18;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.92' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
+      mix-blend-mode: multiply;
+      z-index: 5;
+    }
+    a { color: inherit; }
+    .wrap { width: min(calc(100% - 48px), var(--max)); margin-inline: auto; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      color: var(--muted);
+      font-size: .72rem;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .eyebrow::before {
+      content: '';
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--coral);
+      box-shadow: 15px 0 var(--lime), 30px 0 var(--blue);
+      margin-right: 30px;
+    }
+    header {
+      position: relative;
+      padding: 24px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    nav { display: flex; justify-content: space-between; align-items: center; gap: 24px; }
+    .wordmark { font-size: .96rem; font-weight: 900; letter-spacing: -.04em; }
+    .nav-links { display: flex; gap: 22px; color: var(--muted); font-size: .83rem; }
+    .nav-links a { text-decoration: none; }
+    .nav-links a:hover, .nav-links a:focus-visible { color: var(--ink); }
+
+    .hero {
+      position: relative;
+      min-height: 680px;
+      display: grid;
+      align-items: center;
+      overflow: hidden;
+      padding: 100px 0 118px;
+    }
+    .hero::after {
+      content: '';
+      position: absolute;
+      width: 580px;
+      height: 580px;
+      right: -180px;
+      top: 36px;
+      border-radius: 50%;
+      background: var(--lime);
+      opacity: .82;
+      filter: blur(1px);
+      z-index: -1;
+    }
+    .hero-grid { display: grid; grid-template-columns: 1.12fr .88fr; gap: 70px; align-items: center; }
+    h1, h2, h3 { margin: 0; font-weight: 500; letter-spacing: -.055em; }
+    h1 { max-width: 730px; font-family: var(--serif); font-size: clamp(4.1rem, 8.7vw, 8.8rem); line-height: .87; }
+    h1 em { color: var(--coral); font-style: normal; }
+    .hero-copy { max-width: 540px; margin: 32px 0 0; color: #4f4d46; font-size: 1.08rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 38px; }
+    .button {
+      display: inline-flex;
+      align-items: center;
+      min-height: 46px;
+      padding: 0 20px;
+      border: 1px solid var(--ink);
+      border-radius: 999px;
+      background: var(--ink);
+      color: var(--paper);
+      font-size: .8rem;
+      font-weight: 800;
+      letter-spacing: .03em;
+      text-decoration: none;
+      transition: transform .2s ease, background .2s ease, color .2s ease;
+    }
+    .button:hover, .button:focus-visible { transform: translateY(-3px); background: var(--coral); color: var(--ink); }
+    .button.secondary { background: transparent; color: var(--ink); }
+    .button.secondary:hover, .button.secondary:focus-visible { background: var(--blue); }
+    .orbit {
+      position: relative;
+      width: min(100%, 440px);
+      aspect-ratio: 1;
+      margin-inline: auto;
+      border: 1px solid var(--ink);
+      border-radius: 50%;
+      transform: rotate(-12deg);
+    }
+    .orbit::before, .orbit::after { content: ''; position: absolute; border: 1px solid var(--ink); border-radius: 50%; }
+    .orbit::before { inset: 12%; }
+    .orbit::after { inset: 28%; border-color: rgba(17,18,16,.35); }
+    .orbit-label { position: absolute; top: 8%; left: 40%; padding: 6px 10px; background: var(--paper); font-size: .68rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .orbit-core { position: absolute; inset: 41%; display: grid; place-items: center; border-radius: 50%; background: var(--ink); color: var(--lime); transform: rotate(12deg); font-family: var(--serif); font-size: 1.5rem; text-align: center; }
+    .orbit-dot { position: absolute; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--ink); }
+    .orbit-dot.one { top: 22%; right: 4%; background: var(--coral); }
+    .orbit-dot.two { bottom: 12%; left: 11%; background: var(--blue); }
+    .orbit-dot.three { top: 41%; left: -4%; background: var(--lime); }
+    .hero-note { position: absolute; left: 0; bottom: 30px; max-width: 320px; color: var(--muted); font-size: .78rem; }
+
+    .truth { background: var(--ink); color: var(--paper); padding: 26px 0; }
+    .truth-inner { display: flex; align-items: center; justify-content: space-between; gap: 30px; }
+    .truth strong { color: var(--lime); font-size: .82rem; letter-spacing: .1em; text-transform: uppercase; }
+    .truth p { max-width: 660px; margin: 0; color: #d2d0c6; font-size: .92rem; }
+
+    section { padding: 118px 0; border-bottom: 1px solid var(--line); }
+    .section-head { display: grid; grid-template-columns: .7fr 1.3fr; gap: 50px; margin-bottom: 54px; }
+    h2 { font-family: var(--serif); font-size: clamp(2.8rem, 5vw, 5.4rem); line-height: .94; }
+    .section-intro { max-width: 590px; align-self: end; color: #57554d; font-size: 1.05rem; }
+    .cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .card { min-height: 330px; padding: 30px; border: 1px solid var(--ink); background: rgba(255,255,255,.2); }
+    .card:nth-child(2) { background: var(--coral); }
+    .card-number { color: var(--muted); font-family: var(--serif); font-size: 1.25rem; }
+    .card h3 { margin-top: 68px; font-size: 2.3rem; }
+    .card p { max-width: 390px; color: #46443e; }
+    .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+    .step { padding-top: 20px; border-top: 3px solid var(--ink); }
+    .step:nth-child(2) { border-color: var(--coral); }
+    .step:nth-child(3) { border-color: var(--blue); }
+    .step:nth-child(4) { border-color: #9db965; }
+    .step b { font-family: var(--serif); font-size: 1.5rem; }
+    .step h3 { margin: 42px 0 10px; font-size: 1.5rem; }
+    .step p { color: var(--muted); font-size: .9rem; }
+    .manifest { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+    .manifest-copy p { max-width: 560px; color: #57554d; }
+    pre { margin: 0; overflow: auto; padding: 26px; border-radius: 2px; background: var(--ink); color: var(--lime); font: .77rem/1.75 ui-monospace, SFMono-Regular, Menlo, monospace; box-shadow: 16px 16px 0 var(--blue); }
+    .links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .link-card { display: flex; flex-direction: column; justify-content: space-between; min-height: 170px; padding: 22px; border: 1px solid var(--ink); text-decoration: none; transition: transform .2s ease, background .2s ease; }
+    .link-card:hover, .link-card:focus-visible { transform: translateY(-5px); background: var(--lime); }
+    .link-card span { color: var(--muted); font-size: .75rem; }
+    .link-card strong { font-size: 1.08rem; }
+    footer { padding: 44px 0 64px; }
+    .footer-inner { display: flex; justify-content: space-between; gap: 30px; color: var(--muted); font-size: .78rem; }
+    .footer-inner a { color: var(--ink); font-weight: 800; }
+    @media (max-width: 800px) {
+      .wrap { width: min(calc(100% - 32px), var(--max)); }
+      .nav-links { display: none; }
+      .hero { min-height: auto; padding: 86px 0 116px; }
+      .hero-grid, .section-head, .manifest { grid-template-columns: 1fr; gap: 42px; }
+      h1 { font-size: clamp(3.6rem, 18vw, 7rem); }
+      .orbit { width: min(100%, 350px); }
+      .truth-inner, .footer-inner { align-items: flex-start; flex-direction: column; }
+      .cards, .steps, .links { grid-template-columns: 1fr; }
+      section { padding: 82px 0; }
+      .card { min-height: 260px; }
+      .card h3 { margin-top: 38px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { transition-duration: .001ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main" style="position:absolute;left:-9999px">Skip to content</a>
+  <header>
+    <div class="wrap">
+      <nav aria-label="Primary navigation">
+        <a class="wordmark" href="index.html">VOICECLONEGPT / 0.8</a>
+        <div class="nav-links">
+          <a href="#workflow">Workflow</a>
+          <a href="#apps">The two apps</a>
+          <a href="../README.md">Repository</a>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <span class="eyebrow">Private / local-first / expressive</span>
+          <h1>Your words.<br><em>Your voice.</em></h1>
+          <p class="hero-copy">A careful macOS workspace for building a reusable speaking voice from your own recordings, then reading your writing back to you with it.</p>
+          <div class="actions">
+            <a class="button" href="../README.md">Read the guide <span aria-hidden="true">&nbsp;↗</span></a>
+            <a class="button secondary" href="REAL_VOICE_ROUNDTRIP_PROCEDURE.md">See the procedure</a>
+          </div>
+        </div>
+        <div class="orbit" aria-label="Diagram showing recording, model, and reading as connected stages" role="img">
+          <span class="orbit-label">one voice / many stories</span>
+          <span class="orbit-core">voice<br>model</span>
+          <span class="orbit-dot one" aria-hidden="true"></span>
+          <span class="orbit-dot two" aria-hidden="true"></span>
+          <span class="orbit-dot three" aria-hidden="true"></span>
+        </div>
+      </div>
+      <div class="wrap"><p class="hero-note">Designed for a personal, non-commercial arsenal. No silent placeholder is ever called a clone.</p></div>
+    </section>
+
+    <div class="truth">
+      <div class="wrap truth-inner">
+        <strong>Current truth</strong>
+        <p>The contracts, tests, manifests, and app launchers are built. A real provider install, trained-model conversion, and audible model round trip are still explicit verification gates.</p>
+      </div>
+    </div>
+
+    <section id="apps">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Two apps.<br>One honest handoff.</h2>
+          <p class="section-intro">The producer and the reader are separate by design. Voice Studio can be removed without making Voice Reader choose a model by accident; Voice Reader consumes only an immutable, checked voice bundle.</p>
+        </div>
+        <div class="cards">
+          <article class="card">
+            <span class="card-number">01 / Voice Studio</span>
+            <h3>Make the evidence.</h3>
+            <p>Record a script or a day of natural speech. Transcribe locally, detect overlap, reject contaminated clips, align known text, and preserve style and provenance.</p>
+          </article>
+          <article class="card">
+            <span class="card-number">02 / Voice Reader</span>
+            <h3>Give it something to say.</h3>
+            <p>Import writing you own or are authorized to use. Review the extracted text, select a verified voice bundle, generate resumable chunks, and export audio.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="workflow">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Built like a<br>recording session.</h2>
+          <p class="section-intro">Small, inspectable stages make it possible to pause, review, resume, or replace one part without losing the source recording or the meaning of the handoff.</p>
+        </div>
+        <div class="steps">
+          <article class="step"><b>01</b><h3>Capture</h3><p>A two-session, 30-minute script gives the first pilot clean text, style markers, calibration, and phonetic coverage.</p></article>
+          <article class="step"><b>02</b><h3>Curate</h3><p>Local Whisper timestamps speech. Speaker and overlap gates reject a whole clip when another voice appears.</p></article>
+          <article class="step"><b>03</b><h3>Train</h3><p>A pinned provider recipe creates a source checkpoint. Evaluation happens on held-out prompts before promotion.</p></article>
+          <article class="step"><b>04</b><h3>Read</h3><p>Voice Reader loads the selected bundle independently and writes safe, resumable WAV output.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap manifest">
+        <div class="manifest-copy">
+          <span class="eyebrow">The handoff</span>
+          <h2 style="margin-top:24px">Nothing gets lost between the apps.</h2>
+          <p>JSONL (one JSON object per line) manifests keep each utterance tied to exact text, style, timing, source session, and checksums. The model bundle records its base revision, runtime format, license, and acceptance evidence.</p>
+          <p>That paperwork is not decoration. It is how the Reader knows which voice it is loading—and how you can reproduce or roll back a result later.</p>
+        </div>
+        <pre aria-label="Example manifest row">{
+  "id": "warm-014",
+  "text": "The room is quiet now.",
+  "style": "warm",
+  "start": 87.42,
+  "end": 89.16,
+  "source_session": "pilot-01",
+  "accepted": true
+}</pre>
+      </div>
+    </section>
+
+    <section>
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Start with<br>the right pages.</h2>
+          <p class="section-intro">The repository is a working lab, not a black box. These are the paths that make the first run understandable.</p>
+        </div>
+        <div class="links">
+          <a class="link-card" href="REAL_VOICE_ROUNDTRIP_PROCEDURE.md"><span>PROCEDURE</span><strong>Run the real voice round trip ↗</strong></a>
+          <a class="link-card" href="../data/scripts/voice_training_script_30_minutes.md"><span>RECORDING</span><strong>Open the 30-minute script ↗</strong></a>
+          <a class="link-card" href="../README.md"><span>REPOSITORY</span><strong>Install, build, and contribute ↗</strong></a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <span>VoiceCloneGPT / personal, local-first, deliberately unfinished where proof is missing.</span>
+      <a href="../README.md">View the repository →</a>
+    </div>
+  </footer>
+</body>
+</html>
