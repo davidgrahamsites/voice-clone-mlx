@@ -292,6 +292,49 @@ TDD evidence (measured at this worktree):
 or installed package, so no test collects without it. Pre-existing, unrelated
 to this seam.
 
+## Local speaker-evidence runtime
+
+`speaker_runtime.py` is the independently deletable local execution seam
+between audio/enrollment files and the provider-neutral overlap gate. Its one
+public operation is `run_speaker_runtime(audio_path, enrollment_paths,
+owner_id=, owner_threshold=, duration_s=, provenance=, diarizer=, verifier=,
+timeout_s=120.0) -> SpeakerEvidence`.
+
+The two injected backends run serially and at most once each. The diarizer
+returns anonymous `SpeakerTurn` values; the verifier returns exactly one
+cosine-similarity score per anonymous speaker. Only scores meeting the
+caller's calibrated threshold are relabelled with the enrolled `owner_id`.
+Everything else receives a `non_owner:` label that the unchanged
+`decide_clip` gate rejects.
+
+Provider overlap flags are preserved. The runtime also infers overlap from
+intersecting turn intervals and marks every involved turn, so a provider that
+omits an overlap flag cannot make intersecting speech look clean. Touching
+boundaries remain adjacent. Output turns and scores are deterministic tuples;
+`SpeakerEvidence`, `SpeakerScore`, and provenance are frozen records.
+
+The seam accepts only existing local files and never opens them itself. One
+call is capped at 10 minutes, 16 enrollment files, 512 turns, and a 5-minute
+timeout. Backend outputs fail closed when turns exceed the declared duration,
+scores are missing/extra/malformed, or any span is not an existing
+`SpeakerTurn`. There is no retry, fallback, source separation, file write,
+network operation, or backend/model import. Actual model packages remain
+optional leaf adapters outside this module.
+
+The repository research recommends MLX-Audio Sortformer for diarization and
+local SpeechBrain ECAPA for owner verification, with pinned pyannote as an
+optional comparison provider. This runtime names no preferred provider in
+code; provenance records the injected local implementations and enrollment
+identity.
+
+Human check: use locally held owner, guest, and simultaneous-speech fixtures;
+listen to every accepted span and confirm every guest or overlapping span is
+rejected by `decide_clip` before transcription.
+
+TDD evidence at implementation time used fake backends and empty local path
+fixtures only: 38 focused tests passed. No audio was decoded, no model was
+loaded, and no network or process was used.
+
 ## Free Speech Mode candidate planner
 
 `free_speech_plan.py` is the seam between diarization and transcription for
