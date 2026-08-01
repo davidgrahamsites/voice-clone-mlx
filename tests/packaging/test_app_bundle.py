@@ -133,6 +133,11 @@ class TestInfoPlist:
 
         assert "microphone" in plist["NSMicrophoneUsageDescription"].lower()
 
+    def test_reader_does_not_request_microphone_permission(self, output_dir, repo_root):
+        plist = self._plist(build_app_bundle("voice_reader", output_dir, repo_root))
+
+        assert "NSMicrophoneUsageDescription" not in plist
+
     def test_plist_carries_the_version(self, output_dir, repo_root):
         plist = self._plist(
             build_app_bundle("voice_studio", output_dir, repo_root, version="1.2.3")

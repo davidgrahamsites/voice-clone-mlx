@@ -1,18 +1,19 @@
 # studio_app — Voice Studio
 
 **Job:** the launchable app shell for recording. Load a source file, review the
-lines that will be recorded, generate a recording script, and (eventually)
-record takes.
+lines that will be recorded, generate a recording script, and record local
+takes through an injected capture provider.
 
 **Reads:** a `.txt` source file chosen by the user.
 **Does:** parses it via `ingestion.parsers`, generates scripts via
 `recording.script_generator`. It builds no ingestion or recording logic of its
 own — if behaviour is missing, it belongs in those modules, not here.
 **Writes:** `script_session_N.md` and `script_session_N.jsonl` into a chosen
-output directory (written by `recording.script_generator`, not by this folder).
+output directory (written by `recording.script_generator`, not by this folder),
+plus append-only WAV/JSON takes through `recording.capture` after Record.
 **Human check:** `PYTHONPATH=src python3 -m voiceclonegpt.studio_app` opens a
-window; opening a `.txt` lists its sentences; Record reports that capture is
-not implemented yet.
+window; opening a `.txt` lists its sentences; Record starts one bounded local
+take. Confirm the macOS permission prompt cannot appear before Record.
 
 ## Files
 
@@ -26,6 +27,10 @@ not implemented yet.
 
 - `StudioWindow(master, session=..., choose_file=...)` — inject a session and a
   file-picker stub; constructing the window never starts an event loop.
+- `build_default_session(recording_dir=..., capture_factory=...)` — the
+  headless composition seam. It constructs the optional provider but does not
+  call it. The default recording directory is the existing `~/Music`, falling
+  back to the existing home directory; app launch creates nothing.
 - Bus integration attaches at `shared.integration_seam.set_event_sink`. This
   folder emits `script_loaded`, `script_generated`, and `record_requested`, and
   never imports `voiceclonegpt.bus` directly.
@@ -34,6 +39,12 @@ not implemented yet.
 
 Must not import `reader_app`. May import `shared/`, `ingestion/`, `recording/`.
 Deleting this folder must leave every other module working.
+
+The macOS provider is also optional: `ui.py` imports it only inside the default
+composition factory and falls back to the unavailable-recording session when
+the provider module is absent. Permission and device access live entirely in
+the provider and occur only when `StudioSession.record_line` calls it after an
+explicit Record action.
 
 ## Tests and evidence
 
@@ -120,5 +131,6 @@ TDD evidence:
 
 ## Not implemented
 
-Audio capture. `StudioSession.record_line` is a placeholder that returns a
-message; it records nothing.
+Interactive stop, input-device selection, level meters, and recording-folder
+selection. The first provider records one fixed-duration take from the macOS
+default input device.

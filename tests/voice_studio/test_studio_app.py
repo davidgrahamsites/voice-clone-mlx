@@ -167,6 +167,28 @@ class TestStudioSession:
         assert sorted(tmp_path.iterdir()) == before
 
 
+class TestDefaultRecordingComposition:
+    def test_default_session_does_not_capture_until_record(self, source_file, tmp_path):
+        pytest.importorskip("tkinter")
+        from voiceclonegpt.studio_app.ui import build_default_session
+
+        calls = []
+
+        def capture():
+            calls.append(True)
+            return CapturedPcm(b"\x00\x00", 24_000, 1, 2)
+
+        session = build_default_session(
+            recording_dir=tmp_path, capture_factory=lambda: capture
+        )
+
+        assert calls == []
+        session.load_script(source_file)
+        assert calls == []
+        assert "captured" in session.record_line(0).lower()
+        assert calls == [True]
+
+
 class TestIntegrationSeam:
     def test_events_reach_an_installed_sink(self, source_file):
         events = []
