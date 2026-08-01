@@ -169,10 +169,11 @@ Model output is untrusted, so reading it is bounded and wrapped:
 
 `mlx_qwen_bundle.create_mlx_qwen_bundle(...)` describes a Qwen3-TTS model the
 caller has **already placed on disk** as a loadable bundle. It writes exactly
-two files and touches nothing else:
+three metadata files and touches no model or reference payload:
 
 ```text
 <bundle>/bundle.json
+<bundle>/checksums.sha256
 <bundle>/runtimes/mlx_qwen/config.json
 ```
 
@@ -190,8 +191,10 @@ directory**, so a model at `<bundle>/model` would produce a manifest that
 validates but cannot load. Rejecting it here fails at authoring time with a
 message naming the constraint, instead of at synthesis time.
 
-Symlinks are resolved before the check, so a link pointing outside is refused
-and a link inside the variant directory is fine.
+Every symlink anywhere below the bundle is refused, including one whose target
+is still inside the variant directory. A checksum must identify one exact
+stored path and byte sequence; following a link would make that identity
+depend on a separate mutable path.
 
 ### Manifest shape
 
@@ -199,7 +202,11 @@ and a link inside the variant directory is fine.
 `model_version`; `source_model.artifact_kind` from the three supported kinds;
 one `runtime_variants` entry with id exactly `mlx_qwen`, backend
 `qwen3-tts-mlx`, a **relative** `artifact` path, and a SHA-256 over the exact
-config bytes written.
+config bytes written. `integrity` declares algorithm `sha256` and
+`checksums.sha256`. That checksum manifest is sorted by portable relative path,
+covers every file under the bundle except itself (including model weights,
+reference audio, runtime config, and `bundle.json`), and refuses paths that
+collide after case folding.
 
 The artifact-kind list is duplicated from `shared.model_bundle.ArtifactKind`
 rather than imported — this module stays detachable, and the shared enum ships
@@ -208,10 +215,10 @@ manifest satisfies every field `shared.bundle_reader.read_bundle` requires.
 
 ### Not overwritten, written atomically — with one honest limit
 
-**Both outputs are checked before anything is validated or written**:
-`bundle.json` *and* `runtimes/mlx_qwen/config.json`. Checking only the manifest
-was not enough — a hand-edited runtime config can exist without a manifest, and
-a rerun would have silently destroyed it. A symlink at either path counts as
+**All three generated outputs are checked before anything is validated or
+written**: `bundle.json`, `checksums.sha256`, and
+`runtimes/mlx_qwen/config.json`. A hand-edited file can exist without the other
+two, and a rerun must not destroy it. A symlink at any output path counts as
 existing, so it is refused rather than followed. Remove the file deliberately
 to re-initialize.
 
@@ -219,22 +226,20 @@ Every argument that names a path is coerced inside a guard, so `None` or a
 number raises `BundleInitError` naming the field rather than a raw `TypeError`
 from `Path()`.
 
-Both JSON files are written
-through an exclusively-created sibling (`tempfile.mkstemp`, `O_EXCL`) and
-`os.replace`, so no half-written JSON is observable and a planted temp path
-cannot redirect the write.
+Each generated file is written through an exclusively-created sibling
+(`tempfile.mkstemp`, `O_EXCL`) and `os.replace`, so no half-written metadata is
+observable and a planted temp path cannot redirect the write.
 
-**Limit:** the config is written before the manifest. If the manifest write
-fails, the runtime config remains on disk. It is inert — without `bundle.json`
-nothing will read it — and it is deliberately *not* deleted, because this
-module refuses to remove files it cannot prove it created.
+**Limit:** writes occur in the order config, bundle manifest, checksum
+manifest. If the bundle-manifest write fails, the config remains. If the
+checksum-manifest write fails, the config and bundle manifest remain, but the
+Reader fails closed because integrity evidence is missing. These leftovers are
+deliberately not deleted because this module cannot prove it still owns them.
 
-**A retry will not clear it.** The config guard above refuses any run where
-`runtimes/mlx_qwen/config.json` already exists, and it cannot tell a leftover
-from a hand-edited one. So after a failed manifest write you must **delete the
-leftover config deliberately** before re-running. That is the intended
-trade-off: refusing to guess costs one manual step, and never silently
-destroys a config someone wrote by hand.
+**A retry will not clear leftovers.** The output guards cannot distinguish a
+failed-run remainder from a hand-edited file. Inspect and deliberately delete
+only the generated metadata files left by that attempt before re-running. The
+model and reference payloads are never removed.
 
 (An earlier version of this file said a retry would overwrite the leftover.
 That was true before the config guard and is not true now.)
@@ -310,12 +315,14 @@ A regression test writes `{"ref_text": "hand tuned by a human"}` into the
 config, calls the initializer, and asserts those exact bytes survive and no
 manifest appears.
 
-The one skip is `test_read_bundle_accepts_the_manifest`:
-`voiceclonegpt.shared.bundle_reader` is not in this checkout (it ships on
-`fix/v0.6.2-model-roundtrip-contract`), so **the manifest has not actually been
-read back by the shared reader**. A companion test asserts every field that
-reader requires, and the skip converts to a real check the moment the branches
-meet. Re-run it then before trusting the bundle end to end.
+The v0.7.2 payload-integrity correction adds a sorted `checksums.sha256`, binds
+the complete model/config/reference payload, and makes the shared Reader fail
+closed on missing, duplicate, unsafe, case-colliding, symlinked, unlisted,
+malformed, or mutated payload evidence. Current focused collection is 21 bundle
+manifest tests, 72 bundle safety tests, and 15 shared bundle-reader tests. The
+safety suite skips its author-side case-collision test only on a filesystem
+that refuses to create the collision; the Reader-side collision test still
+runs everywhere.
 
 ### Not registered yet
 
@@ -341,12 +348,13 @@ conditioning beyond the single reference clip, and any F5 comparison backend.
   injected loader recorded **zero** calls.
 - `tests/voice_reader/test_mlx_qwen_runtime.py` (18) — the generate call, the
   typed failures around it, and the lazy mlx-audio import.
-- `tests/voice_reader/test_mlx_qwen_bundle_manifest.py` (16 + 1 skipped) —
-  manifest shape, checksum, runtime-config contents, and compatibility with
-  the shared reader.
-- `tests/voice_reader/test_mlx_qwen_bundle_safety.py` (70) — asset
+- `tests/voice_reader/test_mlx_qwen_bundle_manifest.py` (21) — manifest shape,
+  full-payload checksums, runtime-config contents, mutation refusal, and
+  compatibility with the shared reader.
+- `tests/voice_reader/test_mlx_qwen_bundle_safety.py` (72; one
+  filesystem-dependent skip on case-insensitive macOS) — asset
   confinement, input validation (including non-path `bundle_dir`, `model_dir`,
-  and `ref_audio`), no-overwrite for **both** outputs, atomic writes, and
+  and `ref_audio`), no-overwrite for all generated outputs, atomic writes, and
   detachability.
 - `tests/voice_reader/test_mlx_qwen_audio_conversion.py` (16) — int16
   conversion and clamping, bounded materialization of untrusted output,

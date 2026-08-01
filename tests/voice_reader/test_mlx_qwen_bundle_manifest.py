@@ -96,12 +96,35 @@ class TestManifest:
         assert variant["artifact"] == "runtimes/mlx_qwen/config.json"
         assert not Path(variant["artifact"]).is_absolute()
 
+    def test_manifest_declares_the_payload_checksum_manifest(self, staged):
+        integrity = manifest_of(build(staged))["integrity"]
+
+        assert integrity == {
+            "algorithm": "sha256",
+            "checksum_manifest": "checksums.sha256",
+        }
+
     def test_exactly_one_runtime_variant(self, staged):
         assert len(manifest_of(build(staged))["runtime_variants"]) == 1
 
 
 class TestChecksum:
     """The variant checksum covers the config the runtime will read."""
+
+    def test_checksum_manifest_covers_every_payload_in_sorted_order(self, staged):
+        bundle = build(staged)
+        lines = (bundle / "checksums.sha256").read_text(encoding="utf-8").splitlines()
+        entries = [line.split("  ", 1) for line in lines]
+
+        assert [path for _, path in entries] == [
+            "bundle.json",
+            "runtimes/mlx_qwen/config.json",
+            "runtimes/mlx_qwen/model/weights.safetensors",
+            "runtimes/mlx_qwen/ref/neutral.wav",
+        ]
+        assert dict((path, digest) for digest, path in entries)[
+            "runtimes/mlx_qwen/model/weights.safetensors"
+        ] == hashlib.sha256(b"w").hexdigest()
 
     def test_sha256_matches_the_config_file(self, staged):
         bundle = build(staged)
@@ -199,6 +222,21 @@ class TestReadableByTheSharedReader:
         assert bundle.voice_id == "alex"
         assert bundle.model_version == "0.1.0"
 
+    @pytest.mark.parametrize(
+        "relative",
+        [
+            "runtimes/mlx_qwen/config.json",
+            "runtimes/mlx_qwen/model/weights.safetensors",
+        ],
+    )
+    def test_reader_rejects_mutated_config_or_model_payload(self, staged, relative):
+        reader = pytest.importorskip("voiceclonegpt.shared.bundle_reader")
+        bundle = build(staged)
+        (bundle / relative).write_bytes(b"mutated")
+
+        with pytest.raises(reader.BundleReadError, match="payload checksum mismatch"):
+            reader.read_bundle(bundle)
+
     def test_manifest_has_every_field_the_reader_requires(self, staged):
         """Checked explicitly, so this is covered even where the reader is
         absent — the field list mirrors `shared.bundle_reader.read_bundle`."""
@@ -215,4 +253,3 @@ class TestReadableByTheSharedReader:
             assert "artifact" in variant and "sha256" in variant
             assert not Path(variant["artifact"]).is_absolute()
             assert ".." not in Path(variant["artifact"]).parts
-

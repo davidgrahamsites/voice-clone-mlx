@@ -1,8 +1,8 @@
 """Write a bundle manifest around a Qwen3-TTS model the caller already has.
 
 One job: given a directory where the model and a reference clip are *already
-placed*, write the two JSON files that make it a loadable bundle —
-`bundle.json` and `runtimes/mlx_qwen/config.json`.
+placed*, write the metadata that makes it a loadable, byte-verifiable bundle:
+`bundle.json`, `checksums.sha256`, and `runtimes/mlx_qwen/config.json`.
 
 It never downloads, copies, moves, converts, or loads anything. If an asset is
 not already on disk in the right place, that is an error, not something this
@@ -27,6 +27,7 @@ BUNDLE_SCHEMA_VERSION = "1.0.0"
 
 CONFIG_NAME = "config.json"
 MANIFEST_NAME = "bundle.json"
+CHECKSUMS_NAME = "checksums.sha256"
 
 #: Mirrors shared.model_bundle.ArtifactKind. Duplicated deliberately rather
 #: than imported: this module stays detachable and the shared enum ships on a
@@ -142,6 +143,73 @@ def _write_json_atomically(target: Path, payload: dict) -> bytes:
     return data
 
 
+def _write_bytes_atomically(target: Path, data: bytes) -> None:
+    target.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        handle, temp_name = tempfile.mkstemp(
+            dir=str(target.parent), prefix=f".{target.name}.", suffix=".partial"
+        )
+    except OSError as exc:
+        raise BundleInitError(
+            f"could not create a temporary file next to {target}: {exc}"
+        ) from exc
+
+    temp = Path(temp_name)
+    try:
+        with os.fdopen(handle, "wb") as stream:
+            stream.write(data)
+        os.replace(temp, target)
+    except OSError as exc:
+        try:
+            temp.unlink()
+        except OSError:
+            pass
+        raise BundleInitError(f"could not write {target}: {exc}") from exc
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    try:
+        with path.open("rb") as stream:
+            while True:
+                chunk = stream.read(1024 * 1024)
+                if not chunk:
+                    return digest.hexdigest()
+                digest.update(chunk)
+    except OSError as exc:
+        raise BundleInitError(f"could not checksum payload {path}: {exc}") from exc
+
+
+def _payload_files(bundle_dir: Path) -> list[tuple[str, Path]]:
+    files = []
+    folded_paths = {}
+    for path in bundle_dir.rglob("*"):
+        relative = path.relative_to(bundle_dir).as_posix()
+        if path.is_symlink():
+            raise BundleInitError(f"bundle payload must not be a symlink: {relative}")
+        folded = relative.casefold()
+        previous = folded_paths.get(folded)
+        if previous is not None and previous != relative:
+            raise BundleInitError(
+                f"bundle payload paths collide by case: {previous!r} and {relative!r}"
+            )
+        folded_paths[folded] = relative
+        if path.is_file() and relative != CHECKSUMS_NAME:
+            files.append((relative, path))
+    return files
+
+
+def _write_checksum_manifest(bundle_dir: Path) -> None:
+    entries = [
+        (relative, _sha256_file(path))
+        for relative, path in _payload_files(bundle_dir)
+    ]
+    data = "".join(
+        f"{digest}  {relative}\n" for relative, digest in sorted(entries)
+    ).encode("utf-8")
+    _write_bytes_atomically(bundle_dir / CHECKSUMS_NAME, data)
+
+
 def create_mlx_qwen_bundle(
     bundle_dir,
     *,
@@ -195,10 +263,12 @@ def create_mlx_qwen_bundle(
     # rerun would silently destroy, and it can exist without a manifest.
     manifest_path = resolved_bundle / MANIFEST_NAME
     config_path = resolved_bundle / "runtimes" / RUNTIME_ID / CONFIG_NAME
+    checksums_path = resolved_bundle / CHECKSUMS_NAME
 
     for existing, label in (
         (manifest_path, MANIFEST_NAME),
         (config_path, f"runtimes/{RUNTIME_ID}/{CONFIG_NAME}"),
+        (checksums_path, CHECKSUMS_NAME),
     ):
         if existing.exists() or existing.is_symlink():
             raise BundleInitError(
@@ -240,6 +310,7 @@ def create_mlx_qwen_bundle(
         ref_audio, variant_dir=variant_dir, bundle_dir=resolved_bundle,
         field="ref_audio", want_dir=False,
     )
+    _payload_files(resolved_bundle)
 
     config_bytes = _write_json_atomically(
         variant_dir / CONFIG_NAME,
@@ -260,6 +331,10 @@ def create_mlx_qwen_bundle(
             "voice_id": values["voice_id"],
             "model_version": values["model_version"],
             "source_model": {"artifact_kind": artifact_kind},
+            "integrity": {
+                "algorithm": "sha256",
+                "checksum_manifest": CHECKSUMS_NAME,
+            },
             "runtime_variants": [
                 {
                     "id": RUNTIME_ID,
@@ -270,6 +345,6 @@ def create_mlx_qwen_bundle(
             ],
         },
     )
+    _write_checksum_manifest(resolved_bundle)
 
     return bundle_dir
-
