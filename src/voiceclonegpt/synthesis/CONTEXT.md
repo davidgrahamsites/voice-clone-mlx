@@ -359,9 +359,30 @@ checked:  ('dependency', 'registration', 'config')
 | Question | Answered by |
 |---|---|
 | is the backend installed? | `importlib.util.find_spec` — locates without importing |
-| can this runtime be selected? | `runtime_registry.default_registry().available()` |
+| can this runtime be selected? | the registry — `default_registry().available()` here, `RuntimeRegistry.ids()` on `main` (see below) |
 | is the bundle valid? | `shared.bundle_reader.read_bundle` |
 | is the config usable? | `MlxQwenRuntime.load`, with a **probe loader that raises before any model opens** |
+
+### Two registry APIs, one question
+
+`main`'s `runtime_registry` and this worktree's have diverged: `main` exposes
+`RuntimeRegistry.ids()` and **no** shared `default_registry()`, while this
+checkout exposes `default_registry()` and `available()`. Integration surfaced
+the mismatch as an `ImportError`.
+
+`_registered_runtimes` therefore imports `default_registry` optionally, falls
+back to `RuntimeRegistry`, and calls whichever lister the object has. The
+question asked is identical and the list is never restated here — a test
+asserts this module hard-codes no runtime id and defines no `register`.
+
+Where there is no shared registry, a freshly built one is **empty**, so
+`runtime_not_registered` is reported. That is the honest answer rather than a
+guess: on `main` nothing is registered until a composition root does it, so no
+runtime is selectable process-wide. Verified by executing the module against a
+stand-in exposing only `main`'s surface.
+
+**This compatibility shim should collapse to one import once the two registries
+are reconciled.** It is a second home for nothing — only for *how to ask*.
 
 The probe is the trick worth remembering: reaching the loader *is* the signal
 that every config rule passed, so validity is established by running the real
@@ -407,25 +428,26 @@ ERROR — ModuleNotFoundError: No module named
 # the tests live in two modules, so both must be named
 $ python3 -m pytest tests/voice_reader/test_readiness.py \
       tests/voice_reader/test_readiness_probe.py -q
-39 passed
+40 passed
 $ git diff --check
 (clean)
 ```
 
-Running only `test_readiness.py` reports **35** and silently skips the probe
-protection; the figure for this seam is **35 + 4 = 39**.
+Running only `test_readiness.py` reports **36** and silently skips the probe
+protection; the figure for this seam is **36 + 4 = 40** (was 35 + 4 = 39 before
+the registry-compatibility test was added).
 
 | Test module | Covers | Tests |
 |---|---|---|
-| `tests/voice_reader/test_readiness.py` | the all-clear path, every blocker in isolation and in combination, the skipped-check case, the report contract, purity | 35 |
+| `tests/voice_reader/test_readiness.py` | the all-clear path, every blocker in isolation and in combination, the skipped-check case, the report contract, purity, and that the registry is asked through whichever API the checkout ships | 36 |
 | `tests/voice_reader/test_readiness_probe.py` | that the probe is private, cannot be overridden, and always raises — the guarantee that no model is ever loaded | 4 |
 
 | Run | Result |
 |---|---|
 | suite **without** this seam (baseline) | `1402 passed, 11 skipped` |
-| suite **with** this seam | `1441 passed, 11 skipped` |
+| suite **with** this seam | `1442 passed, 11 skipped` |
 
-Worktree totals only; the delta (+39) is the figure that travels. The baseline
+Worktree totals only; the delta (+40) is the figure that travels. The baseline
 must ignore **both** modules:
 
 ```bash
@@ -435,14 +457,14 @@ $ python3 -m pytest \
 1402 passed, 11 skipped
 ```
 
-`tests/voice_reader/test_readiness.py` (35) — the all-clear path, each blocker
+`tests/voice_reader/test_readiness.py` (36) — the all-clear path, each blocker
 in isolation, several at once, unknown runtime reported rather than raised,
 sorted unique blockers from the fixed vocabulary, the skipped-check case, the
-frozen report, and purity including no writes, no network, and no import of
-the backend. `tests/voice_reader/test_readiness_probe.py` (4) — the probe
-protection.
+frozen report, purity including no writes, no network, and no import of the
+backend, and registry compatibility. `tests/voice_reader/test_readiness_probe.py`
+(4) — the probe protection.
 
 **Version impact: MINOR — v0.3.0 capability.** Branch policy would use
 `feature/v0.3.0-runtime-readiness`; the current freeze keeps this on the
-existing branch. No install, download, API call, service call, branch switch,
-or commit was made.
+existing branch. The seam itself performs no install, download, API call, or
+service call; it was integrated on the frozen branch after review.
