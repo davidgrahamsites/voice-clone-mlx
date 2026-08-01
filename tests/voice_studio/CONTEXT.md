@@ -1,22 +1,25 @@
-# Voice Studio alignment tests
+# Voice Studio seam tests
 
-One job: verify the provider-neutral overlap gate's acceptance and rejection
-contract.
+These tests cover the small Voice Studio seams currently implemented here:
+source ingestion and sentence splitting, script generation, cost preflight,
+marker parsing, chunk planning, and the provider-neutral overlap gate.
 
 ## Inputs
 
-Synthetic `SpeakerTurn` fixtures covering target-only, overlap, other-speaker,
-and out-of-range spans.
+Temporary `.txt`/`.docx` fixtures, synthetic `SpeakerTurn` spans, and bounded
+cost/script inputs. Tests never call a remote service or mutate source data.
 
 ## Process
 
-Run the tests with `PYTHONPATH=src` and assert stable `ClipDecision` values.
+Run the tests with `PYTHONPATH=src` and assert each seam's stable contract,
+including the hard rule that any mixed-speaker candidate clip is rejected.
 
 ## Outputs
 
-Regression evidence that any mixed-speaker candidate clip is rejected.
+Regression evidence for all listed seams, including malformed/oversized DOCX
+rejection and overlap rejection.
 
 ## Human check
 
-Review that the fixtures represent the intended hard rule before adding a real
-diarizer adapter.
+Review that fixtures represent the intended hard rules before adding a real
+diarizer or model-backed adapter.
