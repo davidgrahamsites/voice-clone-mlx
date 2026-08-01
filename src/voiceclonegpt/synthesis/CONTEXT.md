@@ -219,6 +219,11 @@ That was true before the config guard and is not true now.)
 
 ### TDD evidence
 
+Every full-suite total in the transcripts below is a point-in-time run from the
+day its seam landed and ages as unrelated tests arrive elsewhere in the repo;
+the per-module counts and the deltas are the durable, checkout-independent
+figures to compare against (2026-08-01).
+
 ```bash
 # red — no module yet
 $ python3 -m pytest tests/voice_reader/test_mlx_qwen_bundle.py -q
@@ -447,8 +452,9 @@ the registry-compatibility test was added).
 | suite **without** this seam (baseline) | `1402 passed, 11 skipped` |
 | suite **with** this seam | `1442 passed, 11 skipped` |
 
-Worktree totals only; the delta (+40) is the figure that travels. The baseline
-must ignore **both** modules:
+Worktree totals only; the delta (+40) is the figure that travels — both totals
+above were measured at seam-landing time and will not match a later checkout.
+The baseline must ignore **both** modules:
 
 ```bash
 $ python3 -m pytest \
