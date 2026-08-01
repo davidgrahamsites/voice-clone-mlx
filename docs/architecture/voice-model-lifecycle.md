@@ -3,7 +3,7 @@ type: architecture-contract
 contract: voice-model-lifecycle
 contract_version: 1.0.0
 status: accepted-for-scaffolding
-software_release: 0.8.0
+software_release: 1.0.0
 version_impact: minor
 migration_required: false
 usage_scope: personal-noncommercial

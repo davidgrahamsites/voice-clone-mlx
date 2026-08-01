@@ -22,7 +22,7 @@ from typing import Dict
 #: Bundle-envelope version. Bump when the layout a launcher depends on changes.
 BUNDLE_LAYOUT_VERSION = "1.0.0"
 
-DEFAULT_VERSION = "0.8.0"
+DEFAULT_VERSION = "1.0.0"
 
 LAUNCHER_MODE = 0o755
 
