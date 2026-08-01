@@ -42,22 +42,39 @@ synthesize(handle, text) -> bytes   # WAV
 
 ## The null runtime
 
-`null_runtime.NullRuntime` is the only adapter **registered** today — an MLX
-Qwen3-TTS adapter now exists (below) but is not in the registry. It returns a
-valid, non-empty, deterministic mono PCM16 WAV of **silence**, with duration
-derived from text length and clamped to `MAX_SECONDS`. It reads no model file;
-`load` succeeds even when the artifact path does not exist.
+`null_runtime.NullRuntime` is the only adapter a composition root is expected to
+register today — an MLX Qwen3-TTS adapter now exists (below) but nothing
+registers it. It returns a valid, non-empty, deterministic mono PCM16 WAV of
+**silence** at `sample_rate = 22_050` — a plain instance attribute; the class
+publishes no other constants — with duration derived from text length at
+roughly 80 characters per second and bounded internally to **3.0 seconds**. It
+opens no model file, but `load` does require the artifact path to be an existing
+file and raises `FileNotFoundError` otherwise — a bundle naming an absent
+artifact is a bug, not something to paper over. `synthesize` likewise refuses
+text that is not a non-empty string, raising `ValueError`.
 
 It exists so the Reader path is runnable and testable before a voice model
-exists. It imitates no one: every sample is zero and `IS_VOICE_MODEL` is
-`False`. **Never flip that flag, and never present its output as the user's
-voice** — a silent WAV must be visibly a placeholder, not a failed clone.
+exists. It imitates no one: **every sample is zero**. There is no
+`IS_VOICE_MODEL` flag to consult — the guarantee is enforced behaviorally, by
+the all-zero-samples test reading the frames back and asserting the byte set is
+exactly `{0}`. Keep that test: it is the whole honesty mechanism. **Never
+present this output as the user's voice** — a silent WAV must be visibly a
+placeholder, not a failed clone.
 
 ## Human check
 
-1. `default_registry().available()` should list exactly `['null']` until a
-   backend has been verified against a real model. If it lists more, confirm
-   each entry is a genuine voice runtime someone has actually listened to.
+1. There is no shared registry here — a `RuntimeRegistry()` starts empty and a
+   composition root registers into it — so check what a root actually wired up:
+
+   ```python
+   registry = RuntimeRegistry()
+   registry.register("null", NullRuntime())
+   registry.ids()          # ('null',)
+   ```
+
+   Until a backend has been verified against a real model that tuple should
+   hold `'null'` and nothing else. If it lists more, confirm each entry is a
+   genuine voice runtime someone has actually listened to.
 2. Play a null-runtime WAV: it must be audible silence of a sensible length,
    not a zero-byte file and not a crash.
 3. When the first real backend registers, re-read this contract: the registry
@@ -71,10 +88,12 @@ shape for a **locally downloaded** Qwen3-TTS model via mlx-audio.
 
 ### It has never run against a real model
 
-`IS_VERIFIED_AGAINST_REAL_MODEL = False`, and every one of its 71 tests injects
-a fake loader and a fake model. **What is proven:** config validation, path
-confinement, the call it makes to `model.generate`, sample→WAV conversion, and
-the error contract. **What is not proven:** that Qwen3-TTS loads, that
+`IS_VERIFIED_AGAINST_REAL_MODEL = False`, and every one of its tests injects a
+fake loader and a fake model. The suite has since been split in two and
+measured on this checkout at **37** (`test_mlx_qwen_runtime_config.py`) plus
+**18** (`test_mlx_qwen_runtime.py`) — 55 in total, superseding the pre-split
+figure of 71. **What is proven:** config validation, path confinement, the call
+it makes to `model.generate`, sample→WAV conversion, and the error contract. **What is not proven:** that Qwen3-TTS loads, that
 `generate` has this signature in the installed version, or that the audio
 sounds like anything. Do not describe this as working synthesis.
 
