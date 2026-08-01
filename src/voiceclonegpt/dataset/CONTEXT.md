@@ -258,3 +258,45 @@ TDD evidence (measured at this worktree):
       137 passed (50 + 87)
     baseline (both ignored): 1715 passed, 9 skipped
     full suite:              1852 passed, 9 skipped
+
+## Clip probe
+
+`clip_probe.py` supplies the two things `build_dataset_row` requires and never
+computes: the clip's SHA-256 and its audio properties. `probe_clip(path, *,
+max_bytes=MAX_CLIP_BYTES)` returns a frozen `ClipMeasurement(clip_sha256,
+audio_properties, byte_size)` whose keys are exactly `AUDIO_FIELDS`. Keeping
+the digest out of `dataset_rows` keeps that contract free of file access.
+
+Values come from the file: the digest from its bytes, the properties from the
+`wave` header. `duration_s` is frames over frame rate — frames count across
+channels, so stereo is not twice as long as mono. A zero-frame WAV is
+**refused**: `dataset_row_schema` requires `duration_s > 0`. Every
+`stat`/`open`/read failure surfaces as a chained `ClipProbeError`.
+
+The clip is opened **once**, with `O_NOFOLLOW`: checking `is_symlink()` then
+opening by name leaves a window the kernel can close. Size, digest, header, and
+regular-file status all come from that descriptor; without the flag, `lstat` is
+compared against it — detection, not prevention. The cap is enforced from the descriptor *and* counted while
+streaming. Identity (dev, inode, size, mtime, **ctime**) is re-checked after,
+and so is the **name**: `os.replace` leaves the read intact, so a true digest
+of bytes the path no longer refers to would otherwise be recorded.
+`ClipMeasurement.__post_init__` validates direct construction too, `bool` is
+excluded from every numeric check, and the properties mapping is copied then
+frozen. Stdlib only: `wave`, `hashlib`, `os`, `stat`, `errno`, `pathlib`.
+
+> **Known duplication:** `tts/backend.py` computes the same `frames /
+> frame_rate` arithmetic; importing it would mean `dataset` depending on `tts`
+> and raising `SynthesisError`. A shared WAV reader in `shared/` remains open.
+
+TDD evidence (measured at this worktree):
+
+    red (no module): ModuleNotFoundError on both modules
+    red (race):      2 failed — path resolved three times, so a clip swapped
+        mid-probe was measured without complaint
+    red (ctime):     same-size rewrite passed without `st_ctime_ns` — vacuous
+        until the mtime was restored too
+    red (rename):    a renamed replacement was measured silently; the name is
+        now re-checked with `lstat` against the descriptor
+    green:           137 passed (75 + 42 + 20, across three modules)
+    baseline (ignored):  1852 passed, 9 skipped
+    full suite:          1989 passed, 9 skipped
