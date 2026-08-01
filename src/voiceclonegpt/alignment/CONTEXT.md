@@ -149,3 +149,30 @@ TDD evidence (measured after integration):
     focused suite: 94 passed
     full suite: 976 passed, 9 skipped
     UI opt-in suite: 985 passed
+
+## Alignment manifest rows
+
+`alignment_rows.py` defines the pure, versioned `AlignmentManifest v1` row
+contract used before audio can enter a dataset. Its separate
+`alignment_row_schema.py` module owns field vocabulary and validation, while
+the public names remain re-exported from `alignment_rows.py`.
+
+`build_alignment_row` creates a pending row. `accept_row` and
+`reject_row` perform explicit, attributed transitions and require an actor
+and timestamp; the code cannot determine whether an actor is human, so the
+human-review requirement remains a process rule around this artifact. Direct
+construction is still possible for deserialization and tests, but frozen-row
+invariants reject unknown states, unsigned decisions, and pending rows that
+claim a reviewer.
+
+`rows_to_jsonl` and `parse_alignment_jsonl` are deterministic and pure.
+Parsing requires the exact v1 key set, revalidates every field, enforces
+canonical styles and relative `master_audio` references, and rejects
+unattributed or inconsistent decisions. No audio, model, clock, filesystem,
+network, or process work occurs here.
+
+TDD evidence (measured after integration):
+
+    focused suite: 168 passed (98 + 70 across two modules)
+    full suite: 1144 passed, 9 skipped
+    UI opt-in suite: 1153 passed
