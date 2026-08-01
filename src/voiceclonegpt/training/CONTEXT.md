@@ -86,6 +86,62 @@ public interface with local in-memory provider fakes. They prove admission,
 checksum binding, one-attempt failure handling, resume history, learned-artifact
 validation, and import isolation; they make no provider or network calls.
 
+## Source-checkpoint evaluation
+
+`source_model_evaluator.evaluate_source(request, evaluator)` owns one job:
+validate the exact provenance for one learned checkpoint, call one injected
+source-runtime evaluator once, and return a provider-neutral
+`SourceEvaluationReport` whose decision is always `pending_human_review`.
+
+The request binds the training run, dataset, backend and base model, training
+configuration, declared and independently verified checkpoint checksums,
+frozen acceptance manifest and item ids, evaluation configuration, and named
+thresholds. The evaluator returns measurements and one checksum-bound preview
+per acceptance item. Missing, duplicate, malformed, or contradictory evidence
+fails closed. There is no retry, automatic acceptance, promotion, filesystem,
+model/audio loading, graphics-processor, network, conversion, or publication
+work in this module.
+
+The caller owns report serialization and later human review. A failed mandatory
+threshold remains visible in the pending report and cannot become accepted here.
+
+### Human check
+
+Open every preview named by the frozen acceptance manifest, listen to it, and
+compare the report's checkpoint, acceptance-manifest, evaluation-configuration,
+and preview checksums with the reviewed artifacts before recording approval.
+
+## Pure source-model promotion
+
+`source_model_promoter.build_source_release(request)` owns one job: validate an
+explicit human decision and return immutable `SourceModelRelease` metadata plus
+the source checkpoint path a separate caller may copy. It performs no copying,
+serialization, evaluation, conversion, publication, or automatic acceptance.
+
+Promotion requires a learned checkpoint; matching declared and independently
+verified checkpoint and evaluation-report checksums; all mandatory thresholds
+passing; every checksum-bound preview explicitly marked listened; and a named,
+UTC-dated human approval binding the exact checkpoint, acceptance manifest,
+evaluation configuration, and report. Training, base-model, dataset, license,
+and reference-library lineage is preserved. Existing release identities cannot
+be overwritten.
+
+### Human check
+
+Inspect the returned release metadata before any copy. Confirm the approver and
+UTC time are yours, every preview was heard, all checksums match the accepted
+report, and the copy source names the intended learned checkpoint. Conversion
+must not have started.
+
+### Version and tests
+
+MINOR (`v0.8.0`): these are additive, independently deletable seams; no existing
+schema or artifact layout changes, so no migration is required.
+`tests/voice_studio/test_source_model_evaluator.py` and
+`tests/voice_studio/test_source_model_promoter.py` use only in-memory fakes and
+immutable value objects. They access no model, audio, GPU, network, filesystem
+artifact, converter, or publisher.
+
 ## Bounded CUDA command provider
 
 `cuda_command_provider.CudaCommandTrainingProvider` is the independently
