@@ -149,3 +149,29 @@ MINOR (`v0.7.0`): additive provider capability behind the existing training
 interface; no schema migration. `tests/voice_studio/test_cuda_command_provider.py`
 uses only injected in-memory runners and makes no command, network, vendor,
 credential, installation, or GPU call.
+
+## Optional standard-library process adapter
+
+`stdlib_process_adapter` is an independently deletable host leaf. It supplies
+the existing `ProcessFactory` and `ResultMapper` protocols to
+`local_command_runner` without knowing a cloud provider, training backend, or
+application. `StdlibProcessFactory` starts the already-approved argument vector
+in a new process group and streams combined standard output and error as byte
+chunks. Its `terminate` and `kill` operations signal that complete group, so a
+cancelled training command does not leave child processes behind.
+
+`LocalCommandRunner` remains the policy owner: it decides cancellation,
+deadline, captured-output cap, and that there is only one attempt. The adapter
+does not retry, provision a machine, upload data, call a network service, or
+handle credentials. `JsonLineResultMapper` accepts exactly one UTF-8 JSON
+checkpoint record, with no extra or repeated fields, and verifies the approved
+checkpoint directory, lowercase SHA-256 checksum, and requested learned
+artifact kind. The CUDA provider and remote-run coordinator validate the result
+again at their own seams.
+
+### Version and tests
+
+MINOR (`v0.7.0`): optional host capability; no migration or artifact-schema
+change. `tests/voice_studio/test_stdlib_process_adapter.py` injects fake process
+creation, output pipes, and process-group signalling; it never starts a real
+process or accesses a network, GPU, vendor service, or credential.
