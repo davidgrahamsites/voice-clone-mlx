@@ -38,6 +38,8 @@ window; opening a manifest lists its takes, marking which have audio.
   `Player`. No UI toolkit.
 - `synthesis_session.py` — `ReaderSynthesisSession`, `is_safe_output_name`.
   Generates takes through the shared round-trip contract. No UI toolkit.
+- `manifest_roundtrip.py` — `generate_missing_takes`. Fills in a script
+  manifest's missing audio, beside the manifest. No UI toolkit.
 - `ui.py` — `ReaderWindow` (Tk widgets only) plus `build_app()` / `main()`.
 - `__main__.py` — `python3 -m voiceclonegpt.reader_app`.
 
@@ -142,6 +144,8 @@ Two modules, split by responsibility:
 |---|---|---|
 | `tests/voice_reader/test_reader_manifest_security.py` | manifest loading, row schema, unsafe ids, traversal and symlink confinement | no — pure logic and temp files, runs in ~0.1 s |
 | `tests/voice_reader/test_reader_app.py` | `Player`, `ReaderWindow`, and the headless-display gate | only the window tests, and only under the opt-in below |
+| `tests/voice_reader/test_manifest_roundtrip.py` | 37 tests: generation and ordering, resume across every accepted format, failure and re-run, input validation, and that no borrowed rule is re-implemented | no |
+| `tests/voice_reader/test_manifest_roundtrip_writer.py` | 13 tests: placement beside the manifest, and that the writer cannot be bypassed | no |
 | `tests/voice_reader/test_synthesis_session.py` | 41 tests: the round-trip call, input validation, output confinement, typed failures, atomic replacement, and the lazy round-trip seam | no |
 
 The security module deliberately imports no Tk and reads no environment
@@ -216,8 +220,120 @@ Voice Studio has the mirror-image fixture, `studio_tk_root`. The two bodies are
 similar by nature — both open a hidden Tk root — but they are separate facts
 about separate apps, not one fact stored twice.
 
+## Manifest round trip
+
+`generate_missing_takes(manifest_path, synthesize) -> RoundTripResult` walks a
+JSONL script manifest and synthesizes every utterance that has no audio yet.
+There is no `writer` argument — see below.
+
+**Reads:** the manifest. **Writes:** `<utterance_id>.wav` into the manifest's
+own directory. **Does:** orchestration, and nothing else.
+
+### Every rule it depends on already has a home
+
+| Concern | Owner |
+|---|---|
+| row validation | `core.load_manifest` — a malformed manifest raises from there, unchanged |
+| discovery and id safety | `core.find_audio`, via the `Take.has_audio` that `load_manifest` already resolved |
+| confinement and atomic writing | `synthesis_session.ReaderSynthesisSession` |
+
+Tests assert this module defines no `find_audio`, no `is_safe_utterance_id`,
+no `AUDIO_SUFFIXES`, and calls neither `mkstemp` nor `os.replace`. The injected
+`synthesize` is adapted to the session's round-trip shape rather than a second
+writer being built.
+
+### The writer is not injectable, on purpose
+
+`generate_missing_takes(manifest_path, synthesize)` takes **no `writer`
+argument**. An earlier version did, and that made every guarantee the write
+carries — confinement, symlink refusal, byte validation, atomic replacement —
+optional for any caller who passed their own. It also let the tests pass a
+writer that returned a path without writing anything, so the suite was green
+while proving less than it claimed.
+
+`_default_writer` is private and is the only path bytes take to disk. Tests
+that need to observe the write patch that boundary; one test asserts the
+public signature has no `writer` parameter, and another proves the real
+session is still in the path by planting a symlink where a take would be
+written and checking the target survives.
+
+Note when writing such a test: the symlink target must sit **outside** the
+manifest directory. A link to a file inside it resolves cleanly, so
+`find_audio` treats the take as already present and skips it — the write is
+never attempted and the test proves nothing.
+
+### Output location is not a parameter
+
+Audio goes to `manifest_path.parent`. Naming and location together are what let
+`find_audio` locate the result, so a caller cannot point them apart and end up
+with audio the Reader cannot see. Two tests close the loop directly: after a
+run, `find_audio` locates every take and `load_manifest` reports
+`has_audio` for all of them.
+
+### Resume means "the Reader can already find it"
+
+An utterance is skipped when audio exists in **any** format `find_audio`
+accepts — `.wav`, `.m4a`, `.mp3`, `.aiff`. So a real recording placed by hand
+is honoured rather than overwritten by a generated one. Verified end to end: a
+hand-placed `WARM-1.m4a` survived a run that generated the other two takes, and
+the second run generated nothing at all.
+
+### Failure leaves progress intact
+
+A `synthesize` that raises stops the run and raises `ManifestRoundTripError`
+naming the utterance, with the cause chained. Takes already written stay on
+disk, and re-running resumes from the failure — which falls out of the resume
+rule rather than needing bookkeeping. Unusable audio (empty or non-`bytes`) is
+refused by the session before anything is written, and no `.partial` file
+survives either path.
+
 ## Not implemented
 
 Playback position, scrubbing, or re-recording. Playback is a one-shot `afplay`
 subprocess per take.
 
+### TDD evidence — manifest round trip
+
+```bash
+# red — no module yet
+$ python3 -m pytest tests/voice_reader/test_manifest_roundtrip.py -q
+ERROR — ModuleNotFoundError: No module named
+        'voiceclonegpt.reader_app.manifest_roundtrip'
+
+# green — the tests live in two modules, so both must be named
+$ python3 -m pytest tests/voice_reader/test_manifest_roundtrip.py \
+      tests/voice_reader/test_manifest_roundtrip_writer.py -q
+50 passed
+$ git diff --check
+(clean)
+```
+
+Running only `test_manifest_roundtrip.py` reports **37** and silently skips
+placement and the bypass protection; the figure for this seam is
+**37 + 13 = 50**.
+
+| Test module | Covers | Tests |
+|---|---|---|
+| `tests/voice_reader/test_manifest_roundtrip.py` | generation and ordering, resume across every accepted format, failure and re-run, input validation, and the borrowed-rule checks | 37 |
+| `tests/voice_reader/test_manifest_roundtrip_writer.py` | placement beside the manifest, and that confinement, symlink refusal, byte validation, and atomic replacement cannot be bypassed | 13 |
+
+| Run | Result |
+|---|---|
+| suite **without** this seam (baseline) | `1352 passed, 11 skipped` |
+| suite **with** this seam | `1402 passed, 11 skipped` |
+
+Worktree totals only — this checkout carries several other in-flight seams and
+is behind `main`; the delta (+50) is the figure that travels. The baseline
+must ignore **both** modules, or the writer tests are counted into it:
+
+```bash
+$ python3 -m pytest \
+    --ignore=tests/voice_reader/test_manifest_roundtrip.py \
+    --ignore=tests/voice_reader/test_manifest_roundtrip_writer.py -q
+1352 passed, 11 skipped
+```
+
+**Version impact: MINOR — v0.2.0 capability.** Branch policy would place this
+on `feature/v0.2.0-qwen-mlx-backend`; the current branch freeze keeps it on the
+existing branch for orchestrator integration. No install, download, API call,
+service call, or commit was made.
