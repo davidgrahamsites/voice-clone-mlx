@@ -1,8 +1,8 @@
 # studio_app — Voice Studio
 
-**Job:** the launchable app shell for recording. Load a source file, review the
-lines that will be recorded, generate a recording script, and record local
-takes through an injected capture provider.
+**Job:** the launchable app shell and application-level composition seams for
+Voice Studio. Load and record scripted material, or prepare reviewed free-speech
+evidence for the existing dataset contract.
 
 **Reads:** a `.txt` source file chosen by the user.
 **Does:** parses it via `ingestion.parsers`, generates scripts via
@@ -20,6 +20,10 @@ take. Confirm the macOS permission prompt cannot appear before Record.
 - `core.py` — `StudioSession`, all logic, imports no UI toolkit.
 - `audio_acceptance.py` — pure `validate_single_speaker_segments`
   decision seam over diarization output; no audio, model, network, or UI.
+- `free_speech_dataset_pipeline.py` — two-phase coordinator from a captured
+  session plus speaker-runtime evidence to a reviewed `DatasetManifest` JSON
+  document; runtime, measurement, split, and dataset rules remain in their
+  owning modules.
 - `ui.py` — `StudioWindow` (Tk widgets only) plus `build_app()` / `main()`.
 - `__main__.py` — `python3 -m voiceclonegpt.studio_app`.
 
@@ -34,6 +38,14 @@ take. Confirm the macOS permission prompt cannot appear before Record.
 - Bus integration attaches at `shared.integration_seam.set_event_sink`. This
   folder emits `script_loaded`, `script_generated`, and `record_requested`, and
   never imports `voiceclonegpt.bus` directly.
+- `prepare_free_speech_dataset(...) -> DatasetReviewBundle` delegates candidate
+  admission to `alignment.free_speech_plan` and transcription to
+  `alignment.whisper_runner`. Rejected spans remain reviewable and never reach
+  the runner.
+- `finalize_free_speech_dataset(...) -> DatasetComposition` requires one named,
+  timed human decision per prepared transcript. It delegates alignment rows,
+  session-exclusive splits, clip measurements, and dataset rows to their
+  established domain seams; rejected candidates never reach the row builder.
 
 ## Boundaries
 
@@ -46,9 +58,19 @@ the provider module is absent. Permission and device access live entirely in
 the provider and occur only when `StudioSession.record_line` calls it after an
 explicit Record action.
 
+The free-speech composer imports only public provider-neutral contracts. It
+opens no audio, loads no model, calls no service, writes no artifact, and is not
+imported by its producers or consumers. Deleting it leaves recording,
+alignment, dataset, training, Voice Reader, and the Studio recording shell
+importable.
+
 ## Tests and evidence
 
 `tests/voice_studio/test_studio_app.py`.
+`tests/voice_studio/test_free_speech_dataset_pipeline.py` uses injected local
+fakes. Confirm an overlap or non-owner span is retained with its full original
+range and reason while the fake transcription runner and dataset row builder
+both remain uncalled.
 
 ### Headless display seam
 
