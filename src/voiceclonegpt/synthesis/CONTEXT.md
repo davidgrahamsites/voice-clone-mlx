@@ -143,50 +143,152 @@ Model output is untrusted, so reading it is bounded and wrapped:
   `ValueError` and `int(round(inf))` raises `OverflowError`, and neither should
   reach a caller as a raw exception.
 
-## Local MLX Qwen bundle initializer
+## Local bundle initializer
 
-mlx_qwen_bundle.create_mlx_qwen_bundle(...) writes a manifest around a
-Qwen3-TTS model that the caller already placed on disk. It never downloads,
-copies, moves, converts, or loads a model. It writes only:
+`mlx_qwen_bundle.create_mlx_qwen_bundle(...)` describes a Qwen3-TTS model the
+caller has **already placed on disk** as a loadable bundle. It writes exactly
+two files and touches nothing else:
 
-    <bundle>/bundle.json
-    <bundle>/runtimes/mlx_qwen/config.json
+```text
+<bundle>/bundle.json
+<bundle>/runtimes/mlx_qwen/config.json
+```
 
-The model directory and reference WAV must already be inside
-<bundle>/runtimes/mlx_qwen/. The runtime confines paths to the config file's
-directory, so accepting an asset elsewhere in the bundle would create a bundle
-that validates but cannot load. Escaping paths and remote-looking locators are
-refused before any write.
+It never downloads, copies, moves, converts, or loads a model. If an asset is
+not already where it belongs, that is an error — not something this module
+fixes for you. Stdlib only; it imports nothing from the rest of the package, so
+deleting it leaves the runtime adapter and both apps working.
 
-The manifest uses schema 1.0.0, runtime id mlx_qwen, backend qwen3-tts-mlx, an
-allowed artifact kind, and a SHA-256 checksum over the exact config bytes.
-Both destination files are checked before validation or writing; existing
-files and symlinks are never overwritten. JSON is written through an
-exclusively-created temporary sibling and os.replace, so a partial file cannot
-be mistaken for a complete bundle. If the manifest write fails after the
-config is written, the inert config is deliberately retained; the guard
-requires a human to remove it before retrying.
+### Assets must sit inside the runtime variant directory
 
-Every path argument is coerced inside a typed-error guard. Invalid paths,
-missing assets, traversal, outside symlinks, empty identity/text fields, bad
-sample rates, and unsupported artifact kinds raise BundleInitError. The module
-is detachable: it imports only the standard library and removing it does not
-affect synthesis or the apps.
+Assets must be inside `<bundle>/runtimes/mlx_qwen/`, not merely inside the
+bundle. That is stricter than "self-contained" for a concrete reason:
+`mlx_qwen_runtime` confines config paths to **the config file's own
+directory**, so a model at `<bundle>/model` would produce a manifest that
+validates but cannot load. Rejecting it here fails at authoring time with a
+message naming the constraint, instead of at synthesis time.
 
-### TDD and review evidence
+Symlinks are resolved before the check, so a link pointing outside is refused
+and a link inside the variant directory is fine.
 
-The initial red test was a missing-module error. The green split suites now
-cover manifest shape, checksums, runtime-config contents, path confinement,
-typed input refusal, no-overwrite behavior, atomic writes, and import
-detachment:
+### Manifest shape
 
-    test_mlx_qwen_bundle_manifest.py: 16 passed, 1 documented skip
-    test_mlx_qwen_bundle_safety.py: 70 passed
-    full suite: 574 passed, 10 skipped
+`bundle_schema_version` `1.0.0`; identity fields `bundle_id`, `voice_id`,
+`model_version`; `source_model.artifact_kind` from the three supported kinds;
+one `runtime_variants` entry with id exactly `mlx_qwen`, backend
+`qwen3-tts-mlx`, a **relative** `artifact` path, and a SHA-256 over the exact
+config bytes written.
 
-The documented skip is the shared-reader compatibility test when that module
-is absent from a detached checkout; it becomes a real check when the shared
-bundle reader is present.
+The artifact-kind list is duplicated from `shared.model_bundle.ArtifactKind`
+rather than imported — this module stays detachable, and the shared enum ships
+on the model-roundtrip branch. **Keep the two in step**; a test asserts the
+manifest satisfies every field `shared.bundle_reader.read_bundle` requires.
+
+### Not overwritten, written atomically — with one honest limit
+
+**Both outputs are checked before anything is validated or written**:
+`bundle.json` *and* `runtimes/mlx_qwen/config.json`. Checking only the manifest
+was not enough — a hand-edited runtime config can exist without a manifest, and
+a rerun would have silently destroyed it. A symlink at either path counts as
+existing, so it is refused rather than followed. Remove the file deliberately
+to re-initialize.
+
+Every argument that names a path is coerced inside a guard, so `None` or a
+number raises `BundleInitError` naming the field rather than a raw `TypeError`
+from `Path()`.
+
+Both JSON files are written
+through an exclusively-created sibling (`tempfile.mkstemp`, `O_EXCL`) and
+`os.replace`, so no half-written JSON is observable and a planted temp path
+cannot redirect the write.
+
+**Limit:** the config is written before the manifest. If the manifest write
+fails, the runtime config remains on disk. It is inert — without `bundle.json`
+nothing will read it — and it is deliberately *not* deleted, because this
+module refuses to remove files it cannot prove it created.
+
+**A retry will not clear it.** The config guard above refuses any run where
+`runtimes/mlx_qwen/config.json` already exists, and it cannot tell a leftover
+from a hand-edited one. So after a failed manifest write you must **delete the
+leftover config deliberately** before re-running. That is the intended
+trade-off: refusing to guess costs one manual step, and never silently
+destroys a config someone wrote by hand.
+
+(An earlier version of this file said a retry would overwrite the leftover.
+That was true before the config guard and is not true now.)
+
+### TDD evidence
+
+```bash
+# red — no module yet
+$ python3 -m pytest tests/voice_reader/test_mlx_qwen_bundle.py -q
+ERROR — ModuleNotFoundError: No module named
+        'voiceclonegpt.synthesis.mlx_qwen_bundle'
+
+# green
+$ python3 -m pytest tests/voice_reader/test_mlx_qwen_bundle.py -q
+66 passed, 1 skipped in 0.24s
+$ python3 -m pytest -q
+554 passed, 10 skipped in 5.51s
+$ git diff --check
+(clean)
+```
+
+That single 405-line module was then split in two — ICM flags modules that
+large — with the test ids diffed before and after to prove nothing moved but
+the file boundary:
+
+```bash
+$ python3 -m pytest tests/voice_reader/test_mlx_qwen_bundle_manifest.py -q
+16 passed, 1 skipped
+$ python3 -m pytest tests/voice_reader/test_mlx_qwen_bundle_safety.py -q
+50 passed
+$ python3 -m pytest -q
+554 passed, 10 skipped
+```
+
+Review then found two defects, both fixed test-first:
+
+```bash
+# red — an existing runtime config was silently overwritten, and a non-path
+# argument leaked a raw TypeError
+$ python3 -m pytest tests/voice_reader/test_mlx_qwen_bundle_safety.py -q
+14 failed, 50 passed in 0.81s
+
+# green
+$ python3 -m pytest tests/voice_reader/test_mlx_qwen_bundle_safety.py -q
+64 passed in 0.41s
+$ python3 -m pytest -q
+568 passed, 10 skipped in 5.65s
+$ git diff --check
+(clean)
+```
+
+A follow-up review found `bundle_dir` still coerced unguarded — the same
+`Path(None)` leak, in the one argument the earlier fix missed:
+
+```bash
+# red
+$ python3 -m pytest tests/voice_reader/test_mlx_qwen_bundle_safety.py -q
+6 failed, 64 passed in 0.68s
+
+# green
+$ python3 -m pytest tests/voice_reader/test_mlx_qwen_bundle_safety.py -q
+70 passed in 0.46s
+$ python3 -m pytest -q
+574 passed, 10 skipped
+```
+
+A regression test writes `{"ref_text": "hand tuned by a human"}` into the
+config, calls the initializer, and asserts those exact bytes survive and no
+manifest appears.
+
+The one skip is `test_read_bundle_accepts_the_manifest`:
+`voiceclonegpt.shared.bundle_reader` is not in this checkout (it ships on
+`fix/v0.6.2-model-roundtrip-contract`), so **the manifest has not actually been
+read back by the shared reader**. A companion test asserts every field that
+reader requires, and the skip converts to a real check the moment the branches
+meet. Re-run it then before trusting the bundle end to end.
 
 ### Not registered yet
 
@@ -212,6 +314,135 @@ conditioning beyond the single reference clip, and any F5 comparison backend.
   injected loader recorded **zero** calls.
 - `tests/voice_reader/test_mlx_qwen_runtime.py` (18) — the generate call, the
   typed failures around it, and the lazy mlx-audio import.
+- `tests/voice_reader/test_mlx_qwen_bundle_manifest.py` (16 + 1 skipped) —
+  manifest shape, checksum, runtime-config contents, and compatibility with
+  the shared reader.
+- `tests/voice_reader/test_mlx_qwen_bundle_safety.py` (70) — asset
+  confinement, input validation (including non-path `bundle_dir`, `model_dir`,
+  and `ref_audio`), no-overwrite for **both** outputs, atomic writes, and
+  detachability.
 - `tests/voice_reader/test_mlx_qwen_audio_conversion.py` (16) — int16
   conversion and clamping, bounded materialization of untrusted output,
   non-finite sample refusal, and wrapped `.tolist()`/iteration failures.
+
+## Runtime readiness
+
+`readiness.check_runtime_readiness(bundle_dir, *, runtime_id) ->
+ReadinessReport` answers one question: **could a real model round trip run
+here, and if not, what exactly is missing?**
+
+It installs nothing, downloads nothing, imports no backend, loads no model, and
+writes no file. It reports on the world; it does not change it.
+
+### Every blocker at once, not the first one
+
+`ReadinessReport(ready, blockers, checked)` lists **all** the problems, so the
+answer is a checklist rather than a first-failure. Run in this workspace today:
+
+```text
+ready:    False
+blockers: ('dependency_missing', 'model_absent', 'runtime_not_registered')
+checked:  ('dependency', 'registration', 'config')
+```
+
+| Blocker | Meaning |
+|---|---|
+| `dependency_missing` | `mlx_audio` cannot be located |
+| `runtime_not_registered` | no caller could select this runtime id |
+| `bundle_unreadable` | the bundle reader refused it |
+| `config_invalid` | the runtime config is missing, malformed, or otherwise refused |
+| `model_absent` | the config names a model that is not present locally |
+| `reference_absent` | the config names a reference clip that is not present |
+
+### Nothing is validated twice
+
+| Question | Answered by |
+|---|---|
+| is the backend installed? | `importlib.util.find_spec` — locates without importing |
+| can this runtime be selected? | `runtime_registry.default_registry().available()` |
+| is the bundle valid? | `shared.bundle_reader.read_bundle` |
+| is the config usable? | `MlxQwenRuntime.load`, with a **probe loader that raises before any model opens** |
+
+The probe is the trick worth remembering: reaching the loader *is* the signal
+that every config rule passed, so validity is established by running the real
+validation rather than restating it, and `ProbeReached` guarantees no model is
+ever opened.
+
+**The probe is private and not overridable.** An earlier version exposed it as
+`probe=`, which let a caller hand in a loader that genuinely opens a model —
+turning a readiness *check* into a model load, the one thing this module
+promises never to do. Tests assert the public signature has no `probe`
+parameter, that passing one raises `TypeError`, and that `_probe` always
+raises; tests needing to observe the call patch the private boundary.
+
+`model_absent` and `reference_absent` are derived from which config field the
+runtime named in its refusal. Those field names are part of the config
+contract rather than incidental prose, but it is still a coupling — anything
+unrecognized stays the general `config_invalid` rather than being guessed at.
+
+### `ready` is not merely "no blockers"
+
+`ready` requires that every check in `REQUIRED_CHECKS` actually **ran**. Where
+`shared.bundle_reader` is absent — it ships on the model-roundtrip branch — the
+bundle check is omitted from `checked` and the report is not ready, with no
+misleading blocker. An empty `blockers` with `ready` False means *something
+could not be verified*, which is not the same as being fine.
+
+### What this does not do
+
+It does not close the gap. Real synthesis still needs `mlx-audio` installed and
+a Qwen3-TTS model downloaded on Apple Silicon, and
+`IS_VERIFIED_AGAINST_REAL_MODEL` stays `False` until a human has listened. This
+check makes the gap **legible** and turns it into a checklist — nothing more.
+
+### TDD evidence
+
+```bash
+# red — no module yet
+$ python3 -m pytest tests/voice_reader/test_readiness.py -q
+ERROR — ModuleNotFoundError: No module named
+        'voiceclonegpt.synthesis.readiness'
+
+# green
+# the tests live in two modules, so both must be named
+$ python3 -m pytest tests/voice_reader/test_readiness.py \
+      tests/voice_reader/test_readiness_probe.py -q
+39 passed
+$ git diff --check
+(clean)
+```
+
+Running only `test_readiness.py` reports **35** and silently skips the probe
+protection; the figure for this seam is **35 + 4 = 39**.
+
+| Test module | Covers | Tests |
+|---|---|---|
+| `tests/voice_reader/test_readiness.py` | the all-clear path, every blocker in isolation and in combination, the skipped-check case, the report contract, purity | 35 |
+| `tests/voice_reader/test_readiness_probe.py` | that the probe is private, cannot be overridden, and always raises — the guarantee that no model is ever loaded | 4 |
+
+| Run | Result |
+|---|---|
+| suite **without** this seam (baseline) | `1402 passed, 11 skipped` |
+| suite **with** this seam | `1441 passed, 11 skipped` |
+
+Worktree totals only; the delta (+39) is the figure that travels. The baseline
+must ignore **both** modules:
+
+```bash
+$ python3 -m pytest \
+    --ignore=tests/voice_reader/test_readiness.py \
+    --ignore=tests/voice_reader/test_readiness_probe.py -q
+1402 passed, 11 skipped
+```
+
+`tests/voice_reader/test_readiness.py` (35) — the all-clear path, each blocker
+in isolation, several at once, unknown runtime reported rather than raised,
+sorted unique blockers from the fixed vocabulary, the skipped-check case, the
+frozen report, and purity including no writes, no network, and no import of
+the backend. `tests/voice_reader/test_readiness_probe.py` (4) — the probe
+protection.
+
+**Version impact: MINOR — v0.3.0 capability.** Branch policy would use
+`feature/v0.3.0-runtime-readiness`; the current freeze keeps this on the
+existing branch. No install, download, API call, service call, branch switch,
+or commit was made.
