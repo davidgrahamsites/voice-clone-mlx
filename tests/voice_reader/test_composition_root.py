@@ -1,8 +1,7 @@
 """Test the Voice Reader composition root.
 
-The root is the one place that decides which runtimes exist. It builds a
-registry and hands it back; it owns no global, wires no UI, and nothing in the
-package imports it — so deleting it breaks nothing but the app entry point.
+The root is the one place that decides which runtimes exist. It builds fresh
+objects, owns no global, and is imported only by the UI's app entry point.
 """
 
 import ast
@@ -12,7 +11,11 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.reader_app.composition import build_runtime_registry
+from voiceclonegpt.reader_app.composition import (
+    build_runtime_registry,
+    build_synthesis_controller,
+)
+from voiceclonegpt.reader_app.synthesis_controller import ReaderSynthesisController
 from voiceclonegpt.synthesis.readiness import (
     BLOCKER_RUNTIME_NOT_REGISTERED,
     check_runtime_readiness,
@@ -75,6 +78,13 @@ class TestBuiltRegistry:
         assert registry.get("null") is registry.get("null")
 
 
+def test_built_synthesis_controller_starts_disabled():
+    controller = build_synthesis_controller()
+
+    assert isinstance(controller, ReaderSynthesisController)
+    assert controller.ready is False
+
+
 class TestBuiltRegistryRefusals:
     """The root hands back a registry that still refuses ambiguity."""
 
@@ -115,9 +125,9 @@ class TestReadinessCanListTheBuiltRegistry:
 
 
 class TestCompositionRootIsDetachable:
-    """Nothing may import the root: it is a leaf the app entry point calls."""
+    """Only the Reader app entry point may import the composition root."""
 
-    def test_no_module_in_the_package_imports_composition(self):
+    def test_only_reader_ui_imports_composition(self):
         package = Path(build_runtime_registry.__module__.split(".")[0])
         root = Path(__file__).resolve().parents[2] / "src" / "voiceclonegpt"
         importers = []
@@ -135,7 +145,9 @@ class TestCompositionRootIsDetachable:
                 if any("composition" in name for name in names):
                     importers.append(str(path.relative_to(root)))
 
-        assert importers == [], f"composition is imported by {importers}"
+        assert importers == ["reader_app/ui.py"], (
+            f"composition has unexpected importers: {importers}"
+        )
         assert package.name == "voiceclonegpt"
 
     def test_imports_no_ui_or_backend(self):
