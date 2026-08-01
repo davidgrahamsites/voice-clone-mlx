@@ -11,8 +11,8 @@ import dataclasses
 
 import pytest
 
-from voiceclonegpt.dataset.dataset_rows import SPLITS
-from voiceclonegpt.dataset.split_plan import (
+from voiceclonemlx.dataset.dataset_rows import SPLITS
+from voiceclonemlx.dataset.split_plan import (
     SPLIT_RATIOS,
     SplitPlan,
     SplitPlanError,
@@ -253,6 +253,6 @@ class TestFeedsTheDatasetContract:
         assert set(plan.assignments.values()) <= set(SPLITS)
 
     def test_the_split_vocabulary_is_borrowed_not_restated(self):
-        from voiceclonegpt.dataset import split_plan
+        from voiceclonemlx.dataset import split_plan
 
         assert set(split_plan.SPLIT_RATIOS) == set(SPLITS)

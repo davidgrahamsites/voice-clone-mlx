@@ -4,8 +4,8 @@ Pure: no fetching, no fakes, no network. These tests call `extract_text`
 directly — the transport-level wiring is covered in `test_web_transport.py`.
 """
 
-from voiceclonegpt.ingestion import web_html
-from voiceclonegpt.ingestion.web_html import extract_text
+from voiceclonemlx.ingestion import web_html
+from voiceclonemlx.ingestion.web_html import extract_text
 
 
 PAGE = """
@@ -92,14 +92,14 @@ class TestExtractionSeamIsPure:
         import sys
 
         source = (
-            sys.modules["voiceclonegpt.ingestion.web_html"].__file__
+            sys.modules["voiceclonemlx.ingestion.web_html"].__file__
         )
         with open(source, encoding="utf-8") as f:
             text = f.read()
 
         assert "import urllib" not in text
         assert "import socket" not in text
-        assert "from voiceclonegpt.ingestion.web " not in text
+        assert "from voiceclonemlx.ingestion.web " not in text
 
     def test_constants_live_here(self):
         assert "script" in web_html.SKIPPED_ELEMENTS

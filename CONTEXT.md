@@ -1,4 +1,4 @@
-# VoiceCloneGPT workspace
+# VoiceCloneMLX workspace
 
 One job: route work between the two app pipelines and their shared artifact
 contracts.

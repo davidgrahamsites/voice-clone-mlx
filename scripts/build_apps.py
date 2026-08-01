@@ -6,7 +6,7 @@
     python3 scripts/build_apps.py --app voice_studio --output /tmp/out
 
 Thin by design: argument parsing and printing only. Every rule about what a
-bundle contains lives in `voiceclonegpt.packaging.app_bundle`.
+bundle contains lives in `voiceclonemlx.packaging.app_bundle`.
 """
 
 import argparse
@@ -16,7 +16,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from voiceclonegpt.packaging.app_bundle import (  # noqa: E402
+from voiceclonemlx.packaging.app_bundle import (  # noqa: E402
     APP_SPECS,
     DEFAULT_VERSION,
     PackagingError,

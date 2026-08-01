@@ -5,13 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.shared import integration_seam
-from voiceclonegpt.recording.capture import CapturedPcm
-from voiceclonegpt.studio_app.core import StudioSession
+from voiceclonemlx.shared import integration_seam
+from voiceclonemlx.recording.capture import CapturedPcm
+from voiceclonemlx.studio_app.core import StudioSession
 
 
 #: Real Tk windows are only built when this is explicitly set to "1".
-UI_TESTS_ENV = "VOICECLONEGPT_RUN_UI_TESTS"
+UI_TESTS_ENV = "VOICECLONEMLX_RUN_UI_TESTS"
 
 #: Passed to `_open_hidden_root` by tests that drive the post-gate branches.
 OPTED_IN = {UI_TESTS_ENV: "1"}
@@ -170,7 +170,7 @@ class TestStudioSession:
 class TestDefaultRecordingComposition:
     def test_default_session_does_not_capture_until_record(self, source_file, tmp_path):
         pytest.importorskip("tkinter")
-        from voiceclonegpt.studio_app.ui import build_default_session
+        from voiceclonemlx.studio_app.ui import build_default_session
 
         calls = []
 
@@ -214,7 +214,7 @@ class TestIntegrationSeam:
 
 class TestStudioWindow:
     def test_window_builds_and_lists_lines(self, studio_tk_root, source_file):
-        from voiceclonegpt.studio_app.ui import StudioWindow
+        from voiceclonemlx.studio_app.ui import StudioWindow
 
         window = StudioWindow(studio_tk_root)
         assert str(window.record_button["state"]) == "disabled"
@@ -225,7 +225,7 @@ class TestStudioWindow:
         assert "2 lines" in window.status_var.get()
 
     def test_load_error_shows_in_status_bar(self, studio_tk_root, tmp_path):
-        from voiceclonegpt.studio_app.ui import StudioWindow
+        from voiceclonemlx.studio_app.ui import StudioWindow
 
         window = StudioWindow(studio_tk_root)
         window.load_path(tmp_path / "missing.txt")
@@ -233,14 +233,14 @@ class TestStudioWindow:
         assert window.lines.size() == 0
 
     def test_open_uses_the_file_picker_seam(self, studio_tk_root, source_file):
-        from voiceclonegpt.studio_app.ui import StudioWindow
+        from voiceclonemlx.studio_app.ui import StudioWindow
 
         window = StudioWindow(studio_tk_root, choose_file=lambda: str(source_file))
         window.on_open()
         assert window.lines.size() == 2
 
     def test_cancelled_picker_leaves_the_window_alone(self, studio_tk_root):
-        from voiceclonegpt.studio_app.ui import StudioWindow
+        from voiceclonemlx.studio_app.ui import StudioWindow
 
         window = StudioWindow(studio_tk_root, choose_file=lambda: "")
         window.on_open()
@@ -248,8 +248,8 @@ class TestStudioWindow:
         assert window.source_var.get() == "No script loaded."
 
     def test_studio_does_not_import_the_reader(self):
-        import voiceclonegpt.studio_app.core as core
-        import voiceclonegpt.studio_app.ui as ui
+        import voiceclonemlx.studio_app.core as core
+        import voiceclonemlx.studio_app.ui as ui
 
         for module in (core, ui):
             source = open(module.__file__, encoding="utf-8").read()

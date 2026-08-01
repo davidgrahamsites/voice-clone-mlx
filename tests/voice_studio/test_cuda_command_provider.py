@@ -1,6 +1,6 @@
 """Command and recipe contract tests for the bounded CUDA command provider."""
 
-from voiceclonegpt.training.cuda_command_provider import (
+from voiceclonemlx.training.cuda_command_provider import (
     F5_TTS_V1_RECIPE,
     QWEN3_TTS_06B_RECIPE,
     CommandResult,
@@ -8,7 +8,7 @@ from voiceclonegpt.training.cuda_command_provider import (
     PreflightRejected,
     RecipeMismatch,
 )
-from voiceclonegpt.training.remote_training_run import TrainedCheckpoint
+from voiceclonemlx.training.remote_training_run import TrainedCheckpoint
 
 from cuda_command_provider_test_support import (
     SHA_C,
@@ -45,7 +45,7 @@ def test_qwen_request_maps_to_one_exact_command_and_checkpoint():
 
 def test_denied_preflight_never_reaches_runner():
     runner = RecordingRunner(CommandResult(0, 0, "unused", "unused", SHA_D, "fine_tuned_adapter"))
-    from voiceclonegpt.training.cost_preflight import PreflightDecision
+    from voiceclonemlx.training.cost_preflight import PreflightDecision
     denied = PreflightDecision(False, ("The hard cost cap was exceeded.",), 99.0)
     provider = CudaCommandTrainingProvider(manifest(), denied, runner)
     import pytest

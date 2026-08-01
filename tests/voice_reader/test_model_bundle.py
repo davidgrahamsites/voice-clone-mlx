@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.shared.bundle_reader import BundleReadError, read_bundle
-from voiceclonegpt.shared.model_bundle import ArtifactKind
-from voiceclonegpt.shared.voice_model_catalog import VoiceModelCatalog
+from voiceclonemlx.shared.bundle_reader import BundleReadError, read_bundle
+from voiceclonemlx.shared.model_bundle import ArtifactKind
+from voiceclonemlx.shared.voice_model_catalog import VoiceModelCatalog
 
 
 def _write_bundle(root: Path, *, bundle_id: str = "alex@0.1.0") -> Path:

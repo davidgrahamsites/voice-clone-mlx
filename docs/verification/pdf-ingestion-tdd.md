@@ -1,6 +1,6 @@
 # Verification — PDF ingestion (red/green record)
 
-Adapter: `voiceclonegpt.ingestion.parsers._parse_pdf`.
+Adapter: `voiceclonemlx.ingestion.parsers._parse_pdf`.
 Tests: `tests/voice_studio/test_pdf_ingestion.py`.
 
 ## Dependency situation
@@ -23,7 +23,7 @@ path by simulating an absent `pypdf`.
 
 **This means the limits, rejections, and dispatch are verified; extraction
 against a real PDF byte stream is not.** That gap is recorded in
-`src/voiceclonegpt/ingestion/CONTEXT.md` under Human check.
+`src/voiceclonemlx/ingestion/CONTEXT.md` under Human check.
 
 ## Red
 

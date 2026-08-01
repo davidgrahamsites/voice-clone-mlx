@@ -11,8 +11,8 @@ Matching, text handling, validation, and purity live in
 
 import pytest
 
-from voiceclonegpt.alignment.marker_windows import StyleWindow
-from voiceclonegpt.alignment.script_aligner import (
+from voiceclonemlx.alignment.marker_windows import StyleWindow
+from voiceclonemlx.alignment.script_aligner import (
     MISMATCH_EXPECTED_MISSING,
     MISMATCH_OBSERVED_SURPLUS,
     MISMATCH_OUTSIDE_WINDOW,
@@ -20,7 +20,7 @@ from voiceclonegpt.alignment.script_aligner import (
     ScriptAlignerError,
     align_window,
 )
-from voiceclonegpt.alignment.whisper_json import Transcript, TranscriptSegment
+from voiceclonemlx.alignment.whisper_json import Transcript, TranscriptSegment
 
 
 MASTER = "01_recording/output/session-1.wav"

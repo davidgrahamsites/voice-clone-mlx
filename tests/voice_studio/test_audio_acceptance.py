@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.studio_app import audio_acceptance
-from voiceclonegpt.studio_app.audio_acceptance import (
+from voiceclonemlx.studio_app import audio_acceptance
+from voiceclonemlx.studio_app.audio_acceptance import (
     REASON_EMPTY,
     REASON_MALFORMED,
     REASON_NON_TARGET_SPEAKER,

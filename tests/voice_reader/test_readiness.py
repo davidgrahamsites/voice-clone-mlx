@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.synthesis import readiness
-from voiceclonegpt.synthesis.readiness import (
+from voiceclonemlx.synthesis import readiness
+from voiceclonemlx.synthesis.readiness import (
     BLOCKER_BUNDLE_UNREADABLE,
     BLOCKER_CONFIG_INVALID,
     BLOCKER_DEPENDENCY_MISSING,
@@ -108,7 +108,7 @@ class TestRegistration:
         assert BLOCKER_RUNTIME_NOT_REGISTERED in report.blockers
 
     def test_registration_comes_from_the_registry(self):
-        from voiceclonegpt.synthesis import runtime_registry
+        from voiceclonemlx.synthesis import runtime_registry
 
         default = getattr(runtime_registry, "default_registry", None)
         registry = default() if default else runtime_registry.RuntimeRegistry()

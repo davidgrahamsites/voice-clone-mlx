@@ -11,8 +11,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.alignment import whisper_plan
-from voiceclonegpt.alignment.whisper_plan import (
+from voiceclonemlx.alignment import whisper_plan
+from voiceclonemlx.alignment.whisper_plan import (
     PYTHON_ARGV0,
     WhisperPlan,
     WhisperPlanError,

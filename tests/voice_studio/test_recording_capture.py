@@ -10,7 +10,7 @@ import wave
 
 import pytest
 
-from voiceclonegpt.recording.capture import (
+from voiceclonemlx.recording.capture import (
     CaptureError,
     CapturedPcm,
     capture_session,

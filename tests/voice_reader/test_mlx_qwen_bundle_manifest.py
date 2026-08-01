@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.synthesis.mlx_qwen_bundle import (
+from voiceclonemlx.synthesis.mlx_qwen_bundle import (
     RUNTIME_ID,
     create_mlx_qwen_bundle,
 )
@@ -189,7 +189,7 @@ class TestRuntimeConfig:
 
     def test_config_is_loadable_by_the_runtime_adapter(self, staged):
         """End-to-end with a fake loader: no model is opened."""
-        from voiceclonegpt.synthesis.mlx_qwen_runtime import MlxQwenRuntime
+        from voiceclonemlx.synthesis.mlx_qwen_runtime import MlxQwenRuntime
 
         bundle = build(staged)
         seen = []
@@ -212,7 +212,7 @@ class TestReadableByTheSharedReader:
 
     def test_read_bundle_accepts_the_manifest(self, staged):
         reader = pytest.importorskip(
-            "voiceclonegpt.shared.bundle_reader",
+            "voiceclonemlx.shared.bundle_reader",
             reason="shared.bundle_reader ships on the model-roundtrip branch",
         )
 
@@ -230,7 +230,7 @@ class TestReadableByTheSharedReader:
         ],
     )
     def test_reader_rejects_mutated_config_or_model_payload(self, staged, relative):
-        reader = pytest.importorskip("voiceclonegpt.shared.bundle_reader")
+        reader = pytest.importorskip("voiceclonemlx.shared.bundle_reader")
         bundle = build(staged)
         (bundle / relative).write_bytes(b"mutated")
 

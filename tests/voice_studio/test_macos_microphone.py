@@ -6,9 +6,9 @@ open an input device or ask macOS for microphone permission.
 
 import pytest
 
-from voiceclonegpt.recording.capture import CapturedPcm
-from voiceclonegpt.recording import macos_microphone
-from voiceclonegpt.recording.macos_microphone import (
+from voiceclonemlx.recording.capture import CapturedPcm
+from voiceclonemlx.recording import macos_microphone
+from voiceclonemlx.recording.macos_microphone import (
     MacOSMicrophoneCapture,
     MicrophoneCaptureError,
 )

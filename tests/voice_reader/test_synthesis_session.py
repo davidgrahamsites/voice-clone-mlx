@@ -1,6 +1,6 @@
 """Test the Reader synthesis session.
 
-`voiceclonegpt.shared.roundtrip` is not present in this worktree (it lives on
+`voiceclonemlx.shared.roundtrip` is not present in this worktree (it lives on
 the model-roundtrip branch), so the round-trip callable is injected. The
 default path lazily imports it — see `TestRoundTripSeam`.
 
@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.reader_app import synthesis_session
-from voiceclonegpt.reader_app.synthesis_session import (
+from voiceclonemlx.reader_app import synthesis_session
+from voiceclonemlx.reader_app.synthesis_session import (
     ReaderSynthesisError,
     ReaderSynthesisSession,
 )

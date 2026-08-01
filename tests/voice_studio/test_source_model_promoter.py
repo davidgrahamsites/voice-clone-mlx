@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.training.source_model_promoter import (
+from voiceclonemlx.training.source_model_promoter import (
     HumanApproval,
     InvalidSourcePromotion,
     PromotionRequest,
@@ -127,7 +127,7 @@ def test_release_preserves_exact_training_evaluation_license_and_reference_linea
 
 
 def test_module_is_pure_and_has_no_evaluation_conversion_or_publication_dependency():
-    import voiceclonegpt.training.source_model_promoter as module
+    import voiceclonemlx.training.source_model_promoter as module
 
     source = Path(module.__file__).read_text(encoding="utf-8")
     imported = {

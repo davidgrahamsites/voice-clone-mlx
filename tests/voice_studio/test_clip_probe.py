@@ -14,7 +14,7 @@ import wave
 
 import pytest
 
-from voiceclonegpt.dataset.clip_probe import (
+from voiceclonemlx.dataset.clip_probe import (
     AUDIO_PROPERTY_KEYS,
     ClipProbeError,
     CHUNK_BYTES,
@@ -158,18 +158,18 @@ class TestDatasetContract:
         assert set(probe_clip(clip).audio_properties) == set(AUDIO_PROPERTY_KEYS)
 
     def test_the_keys_match_the_dataset_schema(self, clip):
-        from voiceclonegpt.dataset.dataset_rows import AUDIO_FIELDS as SCHEMA
+        from voiceclonemlx.dataset.dataset_rows import AUDIO_FIELDS as SCHEMA
 
         assert set(probe_clip(clip).audio_properties) == set(SCHEMA)
 
     def test_a_measured_clip_builds_a_dataset_row(self, tmp_path, clip):
         """End to end: measure a real file, then admit it to a manifest."""
-        from voiceclonegpt.alignment.alignment_rows import (
+        from voiceclonemlx.alignment.alignment_rows import (
             accept_row,
             build_alignment_row,
         )
-        from voiceclonegpt.alignment.overlap_gate import ClipDecision
-        from voiceclonegpt.dataset.dataset_rows import build_dataset_row
+        from voiceclonemlx.alignment.overlap_gate import ClipDecision
+        from voiceclonemlx.dataset.dataset_rows import build_dataset_row
 
         measurement = probe_clip(clip)
         accepted = accept_row(
@@ -304,8 +304,8 @@ class TestDirectConstruction:
 
         Pinning both ends means the two rules cannot drift apart silently.
         """
-        from voiceclonegpt.dataset.dataset_rows import DatasetRowError
-        from voiceclonegpt.dataset.dataset_row_schema import _audio_properties
+        from voiceclonemlx.dataset.dataset_rows import DatasetRowError
+        from voiceclonemlx.dataset.dataset_row_schema import _audio_properties
 
         with pytest.raises(DatasetRowError, match="positive"):
             _audio_properties(

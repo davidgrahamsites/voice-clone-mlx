@@ -1,4 +1,4 @@
-# VoiceCloneGPT real-voice round-trip procedure
+# VoiceCloneMLX real-voice round-trip procedure
 
 ## Purpose and current status
 
@@ -9,7 +9,7 @@ Silicon Mac.
 The repository currently provides tested, modular contracts for recording,
 transcription planning, speaker/overlap evidence, dataset review, bounded
 training, source-model approval, MLX conversion, parity approval, immutable
-bundle publication, Reader readiness, and WAV output. It does **not** yet
+bundle publication, Reader readiness, and WAV/MP3 output. It does **not** yet
 provide one command that executes the whole lifecycle. Real dependencies,
 model weights, a graphics-processor training provider, and real listening
 approval are not installed or configured.
@@ -26,7 +26,7 @@ Completion means all of the following are true: a reviewed owner-only dataset
 produced a learned checkpoint; that checkpoint was approved; its MLX conversion
 passed the frozen parity set; a complete checksummed bundle was published;
 Voice Reader loaded the exact declared runtime; and a human heard a non-silent
-WAV output that was intelligible and recognizably the owner. Reader can then
+WAV or MP3 output that was intelligible and recognizably the owner. Reader can then
 encode that verified WAV locally as MP3 when the output filename ends in
 `.mp3`.
 
@@ -139,7 +139,7 @@ command with an unpinned `pip install`. A separate approved dependency task must
 resolve compatible versions, record every transitive package/version/hash,
 review the resulting lock, and add the file before this command can run. The
 official MLX-Audio project currently documents its package and requirements at:
-<https://github.com/Blaizzy/mlx-audio>. Do not start its web server; VoiceCloneGPT
+<https://github.com/Blaizzy/mlx-audio>. Do not start its web server; VoiceCloneMLX
 uses local library/runtime seams.
 
 Verify imports without loading a model:
@@ -158,8 +158,8 @@ Current source entry points are:
 
 ```bash
 cd /Users/appleadmin/Apps/VoiceCloneGPT
-PYTHONPATH=src .venv/bin/python -m voiceclonegpt.studio_app
-PYTHONPATH=src .venv/bin/python -m voiceclonegpt.reader_app
+PYTHONPATH=src .venv/bin/python -m voiceclonemlx.studio_app
+PYTHONPATH=src .venv/bin/python -m voiceclonemlx.reader_app
 ```
 
 Build the wrappers after the native-launcher change is integrated. `--replace`

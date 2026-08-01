@@ -2,12 +2,12 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from voiceclonegpt.training.cost_manifest import (
+from voiceclonemlx.training.cost_manifest import (
     CostManifest,
     InvalidCostManifest,
     validate_manifest,
 )
-from voiceclonegpt.training.cost_preflight import run_preflight
+from voiceclonemlx.training.cost_preflight import run_preflight
 
 
 NOW = datetime(2026, 8, 1, 12, 0, tzinfo=timezone.utc)
@@ -23,7 +23,7 @@ def make_manifest(**overrides: object) -> CostManifest:
         "estimated_max_cost_usd": 8.0,
         "hard_cost_cap_usd": 12.0,
         "deadline": NOW + timedelta(hours=6),
-        "checkpoint_uri": "s3://voiceclonegpt/checkpoints/run-1",
+        "checkpoint_uri": "s3://voiceclonemlx/checkpoints/run-1",
         "shutdown_verified": True,
         "user_approved": True,
     }

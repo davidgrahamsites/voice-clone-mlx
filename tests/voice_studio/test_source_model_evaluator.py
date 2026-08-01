@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.training.source_model_evaluator import (
+from voiceclonemlx.training.source_model_evaluator import (
     EvaluationMeasurement,
     EvaluationPreview,
     EvaluationResult,
@@ -162,7 +162,7 @@ def test_every_frozen_acceptance_item_requires_one_checksum_bound_preview():
 
 
 def test_module_has_no_filesystem_model_audio_gpu_or_downstream_dependency():
-    import voiceclonegpt.training.source_model_evaluator as module
+    import voiceclonemlx.training.source_model_evaluator as module
 
     source = Path(module.__file__).read_text(encoding="utf-8")
     imported = {

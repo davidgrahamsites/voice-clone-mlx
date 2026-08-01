@@ -6,8 +6,8 @@ security lives in `test_web_security.py`. No test here touches the network.
 
 import pytest
 
-from voiceclonegpt.ingestion import web, web_transport
-from voiceclonegpt.ingestion.parsers import parse_source_file
+from voiceclonemlx.ingestion import web, web_transport
+from voiceclonemlx.ingestion.parsers import parse_source_file
 from web_test_support import (  # noqa: F401  (no_live_dns is autouse)
     FakeHeaders,
     FakeResponse,

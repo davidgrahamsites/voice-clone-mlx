@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 import pytest
 
-from voiceclonegpt.recording.script_generator import (
+from voiceclonemlx.recording.script_generator import (
     generate_script,
     ScriptOutput,
 )
@@ -19,7 +19,7 @@ class TestRendererSeam:
     """The renderer turns utterances into Markdown and nothing else."""
 
     def _utterances(self):
-        from voiceclonegpt.recording.script_generator import Utterance
+        from voiceclonemlx.recording.script_generator import Utterance
 
         return [
             Utterance(
@@ -42,7 +42,7 @@ class TestRendererSeam:
 
     def test_render_script_is_importable_and_pure(self):
         """Rendering returns a string and writes nothing."""
-        from voiceclonegpt.recording.script_rendering import render_script
+        from voiceclonemlx.recording.script_rendering import render_script
 
         markdown = render_script(self._utterances(), ["neutral", "warm"], 3)
 
@@ -52,7 +52,7 @@ class TestRendererSeam:
 
     def test_render_script_emits_one_section_per_style(self):
         """Each requested style with utterances gets its own heading."""
-        from voiceclonegpt.recording.script_rendering import render_script
+        from voiceclonemlx.recording.script_rendering import render_script
 
         markdown = render_script(self._utterances(), ["neutral", "warm"], 3)
         headings = [
@@ -63,7 +63,7 @@ class TestRendererSeam:
 
     def test_render_script_skips_styles_without_utterances(self):
         """A style with no utterances produces no section."""
-        from voiceclonegpt.recording.script_rendering import render_script
+        from voiceclonemlx.recording.script_rendering import render_script
 
         markdown = render_script(
             self._utterances(), ["neutral", "warm", "somber"], 3
@@ -73,7 +73,7 @@ class TestRendererSeam:
 
     def test_escape_markdown_neutralizes_structure(self):
         """The escaping seam is directly testable."""
-        from voiceclonegpt.recording.script_rendering import escape_markdown
+        from voiceclonemlx.recording.script_rendering import escape_markdown
 
         assert escape_markdown("# heading") == "\\# heading"
         assert escape_markdown("**bold**") == "\\*\\*bold\\*\\*"
@@ -85,7 +85,7 @@ class TestStoreSeam:
     """The store writes the JSONL manifest and nothing else."""
 
     def _utterances(self):
-        from voiceclonegpt.recording.script_generator import Utterance
+        from voiceclonemlx.recording.script_generator import Utterance
 
         return [
             Utterance(
@@ -100,7 +100,7 @@ class TestStoreSeam:
 
     def test_write_manifest_writes_one_json_object_per_line(self, temp_dir):
         """Manifest is JSONL with the raw, unescaped text."""
-        from voiceclonegpt.recording.script_storage import write_manifest
+        from voiceclonemlx.recording.script_storage import write_manifest
 
         path = temp_dir / "manifest.jsonl"
         write_manifest(path, self._utterances())
@@ -115,7 +115,7 @@ class TestStoreSeam:
 
     def test_write_manifest_overwrites_previous_content(self, temp_dir):
         """Rewriting a manifest replaces it rather than appending."""
-        from voiceclonegpt.recording.script_storage import write_manifest
+        from voiceclonemlx.recording.script_storage import write_manifest
 
         path = temp_dir / "manifest.jsonl"
         write_manifest(path, self._utterances())
@@ -125,7 +125,7 @@ class TestStoreSeam:
 
     def test_write_script_markdown_writes_the_file(self, temp_dir):
         """Markdown writing is a storage responsibility, not the renderer's."""
-        from voiceclonegpt.recording.script_storage import write_script_markdown
+        from voiceclonemlx.recording.script_storage import write_script_markdown
 
         path = temp_dir / "script.md"
         write_script_markdown(path, "# Recording Script\nCafé 🎤\n")
@@ -134,7 +134,7 @@ class TestStoreSeam:
 
     def test_both_outputs_are_written_through_storage(self, temp_dir, monkeypatch):
         """The coordinator must not write either output file directly."""
-        from voiceclonegpt.recording import script_generator
+        from voiceclonemlx.recording import script_generator
 
         calls = []
 
@@ -166,8 +166,8 @@ class TestStoreSeam:
 
     def test_write_manifest_preserves_unicode(self, temp_dir):
         """Non-ASCII text round-trips through the manifest."""
-        from voiceclonegpt.recording.script_generator import Utterance
-        from voiceclonegpt.recording.script_storage import write_manifest
+        from voiceclonemlx.recording.script_generator import Utterance
+        from voiceclonemlx.recording.script_storage import write_manifest
 
         path = temp_dir / "manifest.jsonl"
         write_manifest(

@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111210">
+  <title>README — VoiceCloneMLX</title>
+  <link rel="stylesheet" href="document.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-nav">
+      <a class="wordmark" href="index.html">VOICECLONEMLX / DOCUMENTS</a>
+      <nav aria-label="Document navigation">
+        <a href="index.html">Project</a>
+        <a href="procedure.html">Procedure</a>
+        <a href="recording-script.html">Script</a>
+        <a href="README.html">Guide</a>
+      </nav>
+    </div>
+  </header>
+  <main class="doc-shell">
+    <div class="doc-kicker">VoiceCloneMLX / README</div>
+    <h1 align="center">VoiceCloneMLX</h1>
+
+    <div align="center">
+
+    <img src="assets/voiceclonemlx-banner.svg" alt="VoiceCloneMLX — your words, your voice" width="100%">
+
+    <br>
+
+    <p><strong>A private, local-first voice laboratory for turning your
+    own words into a reusable speaking voice.</strong></p>
+    <p>VoiceCloneMLX is a two-app macOS workspace: <strong>Voice
+    Studio</strong> prepares a clean, expressive voice dataset, and
+    <strong>Voice Reader</strong> turns reviewed writing into audio
+    through a versioned voice-model bundle.</p>
+    <p><a href="index.html">Explore the project page</a> · <a
+    href="procedure.html">Read the rendered procedure</a> · <a
+    href="recording-script.html">Open the rendered 30-minute
+    script</a></p>
+    </div>
+
+    <div class="important">
+    <div class="title">
+    <p>Important</p>
+    </div>
+    <p><strong>Honest status:</strong> the application seams, manifests,
+    safety gates, tests, and macOS launchers are in place. The real
+    provider installation, trained-model conversion, and audible
+    trained-model round trip still require a deliberate local
+    verification. The current Reader composition root intentionally
+    keeps a silent placeholder runtime disabled as a model, so silence
+    is never presented as a cloned voice.</p>
+    </div>
+    <h2 id="at-a-glance">At a glance</h2>
+    <table>
+    <tbody>
+    <tr>
+    <td><strong>Platform</strong></td>
+    <td>Apple Silicon macOS · source-first <code>.app</code>
+    launchers</td>
+    </tr>
+    <tr>
+    <td><strong>Privacy</strong></td>
+    <td>Local by default; no silent uploads or implicit model
+    downloads</td>
+    </tr>
+    <tr>
+    <td><strong>Pipeline</strong></td>
+    <td>Record → transcribe → reject overlap → align → train → read</td>
+    </tr>
+    <tr>
+    <td><strong>Model handoff</strong></td>
+    <td>Immutable, checksummed voice bundles with explicit runtime
+    IDs</td>
+    </tr>
+    <tr>
+    <td><strong>Project shape</strong></td>
+    <td>Two independently deletable apps with provider-neutral
+    contracts</td>
+    </tr>
+    </tbody>
+    </table>
+    <div align="center">
+
+    <p><strong><a href="#run-it-locally">Quick start</a></strong> ·
+    <strong><a href="#the-workflow">How it works</a></strong> ·
+    <strong><a href="#safety-and-privacy-rules">Safety</a></strong> ·
+    <strong><a href="#repository-map">Repository map</a></strong></p>
+    </div>
+
+    <h2 id="what-it-is">What it is</h2>
+    <p>VoiceCloneMLX is a personal, non-commercial tool for two
+    connected jobs:</p>
+    <table>
+    <thead>
+    <tr>
+    <th>Voice Studio</th>
+    <th>Voice Reader</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>Turn a prepared script or an all-day recording into reviewed,
+    single-speaker training data.</td>
+    <td>Turn your <code>.txt</code>, <code>.docx</code>, text-based
+    <code>.pdf</code>, or authorized website material into narrated
+    audio.</td>
+    </tr>
+    <tr>
+    <td>Use local MLX Whisper resources to transcribe and time-align
+    speech.</td>
+    <td>Load a selected, verified voice bundle independently of the
+    training app.</td>
+    </tr>
+    <tr>
+    <td>Reject a whole clip when another voice overlaps you, rather than
+    quietly keeping contaminated audio.</td>
+    <td>Generate resumable chunks, preserve provenance, and export WAV
+    or MP3 audio.</td>
+    </tr>
+    <tr>
+    <td>Keep styles such as neutral, warm, energetic, serious, somber,
+    questioning, emphasis, and dialogue attached to the data.</td>
+    <td>Choose among your own or other consented voice bundles when
+    compatible runtimes exist.</td>
+    </tr>
+    </tbody>
+    </table>
+    <p>The durable asset is the dataset: lossless recordings, exact
+    transcripts, style labels, rejection evidence, checksums, and
+    session provenance. Models can change; a carefully curated corpus
+    remains useful.</p>
+    <h2 id="what-it-is-not">What it is not</h2>
+    <ul>
+    <li>It is not a hosted voice service.</li>
+    <li>It does not silently upload private recordings, writing, or
+    model weights.</li>
+    <li>It does not call a reference-audio demo or a silent placeholder
+    a trained personal model.</li>
+    <li>It does not accept mixed-speaker clips for training. If another
+    person talks over you at any point, the complete clip is
+    rejected.</li>
+    <li>It does not train a modern speech foundation model from random
+    initialization. The intended path is fine-tuning a compatible
+    pretrained model, with the exact model, revision, license, and
+    runtime recorded in the bundle.</li>
+    </ul>
+    <h2 id="the-workflow">The workflow</h2>
+    <pre class="text"><code>your writing or conversation
+            │
+            ▼
+      Voice Studio
+  record → transcribe → reject overlap
+       → align → review → dataset
+            │
+            ▼
+    versioned voice bundle
+            │
+            ▼
+      Voice Reader
+  import text → review → synthesize
+       → cache chunks → export audio</code></pre>
+    <h3 id="1-prepare-and-record">1. Prepare and record</h3>
+    <p>Start with the <a href="recording-script.html">rendered
+    30-minute recording script</a> or open its <a
+    href="../data/scripts/voice_training_script_30_minutes.md">Markdown
+    source</a>. It uses two short sessions, calibration passages, room
+    tone, style markers, and coverage for numbers, dates, dialogue,
+    punctuation, technical language, and difficult sounds. A curated
+    script is better for the first model than unstructured speech
+    because every accepted clip has known text and deliberate delivery
+    metadata.</p>
+    <p>You can add all-day natural speech later. The free-speech
+    pipeline transcribes it with your local MLX Whisper installation and
+    admits only segments that pass speaker verification, overlap
+    rejection, audio checks, and human review.</p>
+    <h3 id="2-build-the-dataset">2. Build the dataset</h3>
+    <p>The Studio pipeline preserves the master recording, extracts a
+    local transcription, finds style markers such as “This is the warm
+    reading,” aligns the known text, and emits sentence-level WAV clips
+    with JSONL metadata. Every row carries the text, style, timestamps,
+    source session, and provenance needed to audit or reproduce it.</p>
+    <h3 id="3-train-or-convert-a-model">3. Train or convert a model</h3>
+    <p>The training boundary is provider-neutral. The current research
+    points to an MLX-compatible Qwen3-TTS path as the leading candidate,
+    but the repository does not claim that a real Qwen model has passed
+    the final listen test yet. A future provider task must:</p>
+    <ol type="1">
+    <li>run a tiny, bounded smoke test with the exact pinned
+    revision;</li>
+    <li>train or fine-tune on an approved, split dataset;</li>
+    <li>evaluate held-out prompts against a zero-shot baseline;</li>
+    <li>preserve the source checkpoint and conversion provenance;</li>
+    <li>convert to a local runtime only after the source model passes;
+    and</li>
+    <li>publish an immutable bundle with checksums and license
+    metadata.</li>
+    </ol>
+    <p>Remote GPU use is optional. Free notebook sessions are treated as
+    resumable, opportunistic workers; paid GPU use requires a hard cost
+    cap, checkpoint plan, automatic shutdown, and explicit approval.</p>
+    <h3 id="4-read-with-your-voice">4. Read with your voice</h3>
+    <p>Voice Reader accepts owned or authorized <code>.txt</code>,
+    <code>.docx</code>, text-based <code>.pdf</code>, and website
+    material. It keeps extraction separate from synthesis so the
+    imported text can be reviewed before any audio is generated. A
+    verified model bundle is selected explicitly; the Reader never
+    guesses a compatible runtime.</p>
+    <details>
+    <summary><strong>What the first successful session will look like</strong></summary>
+
+    <ol type="1">
+    <li>Open <strong>Voice Studio</strong> and load the prepared
+    script.</li>
+    <li>Record the two short pilot sessions with the same microphone
+    position and room setup.</li>
+    <li>Let local transcription and overlap checks produce a review
+    queue.</li>
+    <li>Keep only clean, owner-verified takes and inspect the generated
+    manifest.</li>
+    <li>Run the bounded model smoke test before committing to a full
+    training job.</li>
+    <li>Open <strong>Voice Reader</strong>, import a small text sample,
+    select the verified bundle, and generate one WAV or MP3 file.</li>
+    </ol>
+    <p>The last step is deliberately gated. Until a human has listened
+    to real output, the runtime remains unverified and the Reader must
+    not imply that it is your voice.</p>
+    </details>
+
+    <h2 id="run-it-locally">Run it locally</h2>
+    <p>The project is currently a source workspace with thin
+    <code>.app</code> launchers. The launchers point back to the
+    repository's <code>src/</code> directory; they do not bundle a
+    Python interpreter, model weights, or a dependency environment.</p>
+    <h3 id="requirements">Requirements</h3>
+    <ul>
+    <li>Apple Silicon macOS is the primary target.</li>
+    <li>Python 3.10+ is recommended for the current source modules.</li>
+    <li>Tkinter is needed for the desktop windows.</li>
+    <li>Optional importers use <code>python-docx</code> for Word files
+    and <code>pypdf</code> for text PDFs.</li>
+    <li>MLX Whisper and a real TTS runtime are installed separately and
+    remain opt-in. No model is downloaded implicitly.</li>
+    </ul>
+    <h3 id="launch-from-source">Launch from source</h3>
+    <div class="sourceCode" id="cb2"><pre
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /Users/appleadmin/Apps/VoiceCloneGPT</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span>src <span class="ex">python3</span> <span class="at">-m</span> voiceclonemlx.studio_app</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span>src <span class="ex">python3</span> <span class="at">-m</span> voiceclonemlx.reader_app</span></code></pre></div>
+    <h3 id="build-the-two-macos-app-launchers">Build the two macOS app
+    launchers</h3>
+    <div class="sourceCode" id="cb3"><pre
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> scripts/build_apps.py</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">open</span> <span class="st">&quot;apps/Voice Studio.app&quot;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">open</span> <span class="st">&quot;apps/Voice Reader.app&quot;</span></span></code></pre></div>
+    <p>The build refuses to overwrite an existing bundle by default. Use
+    <code>--replace</code> only after checking the target is one of this
+    project's own bundles and keeping a rollback copy.</p>
+    <h3 id="run-the-checks">Run the checks</h3>
+    <div class="sourceCode" id="cb4"><pre
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span>src <span class="ex">python3</span> <span class="at">-m</span> pytest <span class="at">-q</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> /Users/appleadmin/.codex/skills/icm-check/scripts/icm_check.py .</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span></code></pre></div>
+    <p>The ICM check audits the workspace structure: each module has a
+    defined job, inputs, outputs, boundaries, and deletion-safe seams.
+    It is not a substitute for listening to generated speech.</p>
+    <p>Voice Reader accepts an output filename ending in
+    <code>.wav</code> or <code>.mp3</code>. WAV is the lossless runtime
+    output. MP3 is encoded locally from that WAV using the first
+    available encoder in this order: LAME, ffmpeg, then macOS
+    <code>afconvert</code>. No codec is downloaded automatically.</p>
+    <details>
+    <summary><strong>Command reference</strong></summary>
+
+    <table>
+    <thead>
+    <tr>
+    <th>Goal</th>
+    <th>Command</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>Launch Voice Studio</td>
+    <td><code>PYTHONPATH=src python3 -m voiceclonemlx.studio_app</code></td>
+    </tr>
+    <tr>
+    <td>Launch Voice Reader</td>
+    <td><code>PYTHONPATH=src python3 -m voiceclonemlx.reader_app</code></td>
+    </tr>
+    <tr>
+    <td>Build both launchers</td>
+    <td><code>python3 scripts/build_apps.py</code></td>
+    </tr>
+    <tr>
+    <td>Run the Reader tests</td>
+    <td><code>PYTHONPATH=src python3 -m pytest -q tests/voice_reader/</code></td>
+    </tr>
+    <tr>
+    <td>Run the full test suite</td>
+    <td><code>PYTHONPATH=src python3 -m pytest -q</code></td>
+    </tr>
+    <tr>
+    <td>Audit ICM structure</td>
+    <td><code>python3 /Users/appleadmin/.codex/skills/icm-check/scripts/icm_check.py .</code></td>
+    </tr>
+    </tbody>
+    </table>
+    </details>
+
+    <h2 id="repository-map">Repository map</h2>
+    <pre class="text"><code>src/voiceclonemlx/
+├── recording/       capture and script storage
+├── ingestion/       TXT, DOCX, PDF, and web extraction
+├── alignment/       Whisper plans, markers, timestamps, overlap gates
+├── dataset/         clip probes, rows, and split planning
+├── training/        cost preflight, commands, evaluation, conversion
+├── synthesis/       runtime adapters, readiness, and MLX bundle loading
+├── studio_app/      Voice Studio composition and UI
+├── reader_app/      Voice Reader composition and UI
+└── shared/          versioned provider-neutral contracts
+
+data/scripts/        teleprompters and script handoffs
+docs/                procedures, architecture, research, and this page
+scripts/             bounded packaging commands
+tests/               focused contract and security tests
+apps/                generated macOS .app launchers</code></pre>
+    <h2 id="safety-and-privacy-rules">Safety and privacy rules</h2>
+    <p>The repository treats a voice as sensitive personal data.</p>
+    <ul>
+    <li>Process locally by default. Do not upload private material
+    without an explicit provider choice.</li>
+    <li>Keep API, browser, GPU, and local-bus work one request at a time
+    unless a measured, documented limit allows more.</li>
+    <li>Cache and checkpoint external work; stop on rate limits, quota,
+    auth, abuse, or repeated errors.</li>
+    <li>Do not train on another person's voice without consent.</li>
+    <li>Retain the original masters and rejection log; derived clips are
+    not a replacement for the source recording.</li>
+    <li>Require human listening before a runtime is marked
+    verified.</li>
+    </ul>
+    <p>See <a href="../OPERATIONS.md">OPERATIONS.md</a>, <a
+    href="../REPORTING.md">REPORTING.md</a>, and the <a
+    href="architecture/voice-model-lifecycle.md">voice-model
+    lifecycle contract</a> for the full rules.</p>
+    <h2 id="versioning">Versioning</h2>
+    <p>Software and voice bundles use separate Semantic Versioning
+    histories.</p>
+    <ul>
+    <li><code>PATCH</code> (<code>0.x.1</code>) fixes behavior without
+    changing a public seam.</li>
+    <li><code>MINOR</code> (<code>0.1.x</code>) adds an optional,
+    compatible capability.</li>
+    <li><code>MAJOR</code> (<code>1.0.0</code>) changes a required
+    schema, runtime contract, artifact layout, or app boundary and
+    requires a migration note.</li>
+    </ul>
+    <p>Read <a href="../VERSIONING.md">VERSIONING.md</a> before changing a
+    module. Never rewrite a previous model bundle in place; publish a
+    new immutable version.</p>
+    <h2 id="contributing-to-this-personal-workspace">Contributing to
+    this personal workspace</h2>
+    <p>Keep changes small enough to delete independently. Start
+    read-only, identify the exact seam, write tests before
+    implementation, and request an exact scoped
+    <code>APPROVED WRITE</code> before editing. Run the focused tests
+    while developing, then the full suite and ICM check at a substantial
+    milestone. Never burst Git or external services.</p>
+    <h2 id="license-and-voice-rights">License and voice rights</h2>
+    <p>This repository is a personal, non-commercial utility. Code and
+    model licenses remain separate: record the exact license and
+    revision for every base model, checkpoint, dataset, and converter.
+    Only use your own voice or a voice for which you have explicit
+    permission. This project is not legal advice.</p>
+    <h2 id="further-reading">Further reading</h2>
+    <ul>
+    <li><a href="procedure.html">Rendered real voice round-trip
+    procedure</a></li>
+    <li><a href="procedure.html">Markdown source
+    for the procedure</a></li>
+    <li><a href="architecture/voice-model-lifecycle.md">Voice model
+    lifecycle</a></li>
+    <li><a href="research/tts-backend-evaluation.md">TTS backend
+    evaluation</a></li>
+    <li><a href="research/personal-tts-training.md">Personal TTS
+    training research</a></li>
+    <li><a href="../data/scripts/MLX_WHISPER.md">MLX Whisper notes</a></li>
+    <li><a href="about.html">Project About description</a></li>
+    <li><a
+    href="migrations/voiceclonemlx-package-rename.md">VoiceCloneMLX
+    package migration</a></li>
+    </ul>
+    <a class="source-link" href="../README.md">Open the Markdown source ↗</a>
+  </main>
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>Private, local-first, and explicit about what has been verified.</span>
+      <a href="index.html">Back to the project page →</a>
+    </div>
+  </footer>
+</body>
+</html>

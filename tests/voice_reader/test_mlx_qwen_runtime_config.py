@@ -13,7 +13,7 @@ import json
 
 import pytest
 
-from voiceclonegpt.synthesis.mlx_qwen_runtime import (
+from voiceclonemlx.synthesis.mlx_qwen_runtime import (
     MlxQwenRuntime,
     RuntimeConfigError,
 )

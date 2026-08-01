@@ -1,6 +1,6 @@
 # Verification — website ingestion (red/green record)
 
-Adapter: `src/voiceclonegpt/ingestion/web.py`.
+Adapter: `src/voiceclonemlx/ingestion/web.py`.
 Tests: `tests/voice_studio/test_web_html.py` (extraction) and
 `tests/voice_studio/test_web_transport.py` (everything else).
 
@@ -22,7 +22,7 @@ extraction — so there is no new dependency to declare.
 ```bash
 $ python3 -m pytest tests/voice_studio/test_web_ingestion.py -q
 ERROR tests/voice_studio/test_web_ingestion.py
-ImportError: cannot import name 'web' from 'voiceclonegpt.ingestion'
+ImportError: cannot import name 'web' from 'voiceclonemlx.ingestion'
 1 error in 0.18s
 ```
 
@@ -81,7 +81,7 @@ below the cap could hold the read open indefinitely).
 ```bash
 $ python3 -m pytest tests/voice_studio/test_web_ingestion.py -q
 69 errors in 0.88s
-AttributeError: module 'voiceclonegpt.ingestion.web' has no attribute '_default_resolver'
+AttributeError: module 'voiceclonemlx.ingestion.web' has no attribute '_default_resolver'
 ```
 
 Every test errored, including the pre-existing ones: the new autouse
@@ -211,8 +211,8 @@ $ python3 -m pytest -q
 222 passed in 5.52s
 $ python3 -m pytest tests/voice_studio/test_web_ingestion.py -q
 82 passed in 0.20s
-$ wc -l src/voiceclonegpt/ingestion/web.py tests/voice_studio/test_web_ingestion.py
-540  src/voiceclonegpt/ingestion/web.py
+$ wc -l src/voiceclonemlx/ingestion/web.py tests/voice_studio/test_web_ingestion.py
+540  src/voiceclonemlx/ingestion/web.py
 800  tests/voice_studio/test_web_ingestion.py
 ```
 

@@ -1,14 +1,14 @@
 """Shared fixtures for CUDA command-provider contract tests."""
 
-from voiceclonegpt.training.cost_preflight import PreflightDecision
-from voiceclonegpt.training.cuda_command_provider import (
+from voiceclonemlx.training.cost_preflight import PreflightDecision
+from voiceclonemlx.training.cuda_command_provider import (
     F5_TTS_V1_RECIPE,
     QWEN3_TTS_06B_RECIPE,
     CommandResult,
     CudaCommandTrainingProvider,
     TrainingCommandManifest,
 )
-from voiceclonegpt.training.remote_training_run import DatasetEvidence, TrainingRequest
+from voiceclonemlx.training.remote_training_run import DatasetEvidence, TrainingRequest
 
 SHA_A = "a" * 64
 SHA_B = "b" * 64

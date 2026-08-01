@@ -2,8 +2,8 @@
 
 import pytest
 
-from voiceclonegpt.alignment.free_speech_plan import FreeSpeechCandidate
-from voiceclonegpt.alignment.overlap_gate import SpeakerTurn
+from voiceclonemlx.alignment.free_speech_plan import FreeSpeechCandidate
+from voiceclonemlx.alignment.overlap_gate import SpeakerTurn
 
 @pytest.fixture
 def local_assets(tmp_path):

@@ -8,9 +8,9 @@ from pathlib import Path
 
 from free_speech_plan_test_support import candidate, local_assets
 
-from voiceclonegpt.alignment import free_speech_plan
+from voiceclonemlx.alignment import free_speech_plan
 
-from voiceclonegpt.alignment.free_speech_plan import plan_free_speech
+from voiceclonemlx.alignment.free_speech_plan import plan_free_speech
 
 
 

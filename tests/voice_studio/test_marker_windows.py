@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.alignment import marker_windows
-from voiceclonegpt.alignment.marker_windows import (
+from voiceclonemlx.alignment import marker_windows
+from voiceclonemlx.alignment.marker_windows import (
     REASON_NO_MARKERS,
     MarkerWindowError,
     StyleWindow,
@@ -370,6 +370,7 @@ class TestSeamIsPure:
             line for line in source.splitlines()
             if line.startswith(("import ", "from "))
         )
+        imports = imports.replace("voiceclonemlx.", "")
 
         for banned in ("os", "pathlib", "wave", "numpy", "soundfile", "mlx",
                        "urllib", "requests", "socket", "subprocess", "tkinter"):
@@ -387,4 +388,3 @@ class TestSeamIsPure:
 
         assert "studio_app" not in source
         assert "reader_app" not in source
-

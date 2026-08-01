@@ -1,6 +1,6 @@
-# VoiceCloneGPT agent routing
+# VoiceCloneMLX agent routing
 
-VoiceCloneGPT is a local, personal, non-commercial voice workspace with two
+VoiceCloneMLX is a local, personal, non-commercial voice workspace with two
 independently deletable apps and shared versioned artifact contracts.
 
 - Current priorities and app behavior: [`PLAN.md`](PLAN.md)

@@ -16,8 +16,8 @@ import wave
 
 import pytest
 
-from voiceclonegpt.synthesis import mlx_qwen_runtime
-from voiceclonegpt.synthesis.mlx_qwen_runtime import (
+from voiceclonemlx.synthesis import mlx_qwen_runtime
+from voiceclonemlx.synthesis.mlx_qwen_runtime import (
     MlxQwenRuntime,
     SynthesisError,
 )

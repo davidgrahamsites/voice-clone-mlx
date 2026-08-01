@@ -1,18 +1,18 @@
-<h1 align="center">VoiceCloneGPT</h1>
+<h1 align="center">VoiceCloneMLX</h1>
 
 <div align="center">
 
-<img src="docs/assets/voiceclonegpt-banner.svg" alt="VoiceCloneGPT — your words, your voice" width="100%">
+<img src="docs/assets/voiceclonemlx-banner.svg" alt="VoiceCloneMLX — your words, your voice" width="100%">
 
 <br>
 
 **A private, local-first voice laboratory for turning your own words into a reusable speaking voice.**
 
-VoiceCloneGPT is a two-app macOS workspace: **Voice Studio** prepares a clean,
+VoiceCloneMLX is a two-app macOS workspace: **Voice Studio** prepares a clean,
 expressive voice dataset, and **Voice Reader** turns reviewed writing into
 audio through a versioned voice-model bundle.
 
-[Explore the project page](docs/index.html) · [Read the full procedure](docs/REAL_VOICE_ROUNDTRIP_PROCEDURE.md) · [Open the 30-minute script](data/scripts/voice_training_script_30_minutes.md)
+[Explore the project page](docs/index.html) · [Read the rendered procedure](docs/procedure.html) · [Open the rendered 30-minute script](docs/recording-script.html)
 
 </div>
 
@@ -42,7 +42,7 @@ audio through a versioned voice-model bundle.
 
 ## What it is
 
-VoiceCloneGPT is a personal, non-commercial tool for two connected jobs:
+VoiceCloneMLX is a personal, non-commercial tool for two connected jobs:
 
 | Voice Studio | Voice Reader |
 | --- | --- |
@@ -88,7 +88,8 @@ your writing or conversation
 
 ### 1. Prepare and record
 
-Start with the [30-minute recording script](data/scripts/voice_training_script_30_minutes.md).
+Start with the [rendered 30-minute recording script](docs/recording-script.html)
+or open its [Markdown source](data/scripts/voice_training_script_30_minutes.md).
 It uses two short sessions, calibration passages, room tone, style markers,
 and coverage for numbers, dates, dialogue, punctuation, technical language,
 and difficult sounds. A curated script is better for the first model than
@@ -170,8 +171,8 @@ Python interpreter, model weights, or a dependency environment.
 ```bash
 cd /Users/appleadmin/Apps/VoiceCloneGPT
 
-PYTHONPATH=src python3 -m voiceclonegpt.studio_app
-PYTHONPATH=src python3 -m voiceclonegpt.reader_app
+PYTHONPATH=src python3 -m voiceclonemlx.studio_app
+PYTHONPATH=src python3 -m voiceclonemlx.reader_app
 ```
 
 ### Build the two macOS app launchers
@@ -208,8 +209,8 @@ is downloaded automatically.
 
 | Goal | Command |
 | --- | --- |
-| Launch Voice Studio | `PYTHONPATH=src python3 -m voiceclonegpt.studio_app` |
-| Launch Voice Reader | `PYTHONPATH=src python3 -m voiceclonegpt.reader_app` |
+| Launch Voice Studio | `PYTHONPATH=src python3 -m voiceclonemlx.studio_app` |
+| Launch Voice Reader | `PYTHONPATH=src python3 -m voiceclonemlx.reader_app` |
 | Build both launchers | `python3 scripts/build_apps.py` |
 | Run the Reader tests | `PYTHONPATH=src python3 -m pytest -q tests/voice_reader/` |
 | Run the full test suite | `PYTHONPATH=src python3 -m pytest -q` |
@@ -220,7 +221,7 @@ is downloaded automatically.
 ## Repository map
 
 ```text
-src/voiceclonegpt/
+src/voiceclonemlx/
 ├── recording/       capture and script storage
 ├── ingestion/       TXT, DOCX, PDF, and web extraction
 ├── alignment/       Whisper plans, markers, timestamps, overlap gates
@@ -286,9 +287,11 @@ which you have explicit permission. This project is not legal advice.
 
 ## Further reading
 
-- [Detailed real voice round-trip procedure](docs/REAL_VOICE_ROUNDTRIP_PROCEDURE.md)
+- [Rendered real voice round-trip procedure](docs/procedure.html)
+- [Markdown source for the procedure](docs/REAL_VOICE_ROUNDTRIP_PROCEDURE.md)
 - [Voice model lifecycle](docs/architecture/voice-model-lifecycle.md)
 - [TTS backend evaluation](docs/research/tts-backend-evaluation.md)
 - [Personal TTS training research](docs/research/personal-tts-training.md)
 - [MLX Whisper notes](data/scripts/MLX_WHISPER.md)
 - [Project About description](docs/ABOUT.md)
+- [VoiceCloneMLX package migration](docs/migrations/voiceclonemlx-package-rename.md)

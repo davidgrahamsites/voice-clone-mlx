@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.training.runtime_conversion import (
+from voiceclonemlx.training.runtime_conversion import (
     ConvertedPayload,
     InvalidConversionRequest,
     InvalidConversionResult,
@@ -149,7 +149,7 @@ def test_converter_failure_is_not_retried():
 
 
 def test_module_never_imports_or_registers_a_runtime():
-    import voiceclonegpt.training.runtime_conversion as module
+    import voiceclonemlx.training.runtime_conversion as module
 
     tree = ast.parse(Path(module.__file__).read_text(encoding="utf-8"))
     imports = {

@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from voiceclonegpt.alignment.overlap_gate import (
+from voiceclonemlx.alignment.overlap_gate import (
     ACCEPT_STATUS,
     REJECT_STATUS,
     ClipDecision,

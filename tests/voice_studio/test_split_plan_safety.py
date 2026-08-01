@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.dataset import split_plan
-from voiceclonegpt.dataset.split_plan import (
+from voiceclonemlx.dataset import split_plan
+from voiceclonemlx.dataset.split_plan import (
     SPLIT_RATIOS,
     SplitPlan,
     SplitPlanError,
@@ -248,7 +248,7 @@ class TestSeamIsPure:
         return " ".join(
             line for line in source.splitlines()
             if line.startswith(("import ", "from "))
-        )
+        ).replace("voiceclonemlx.", "")
 
     @pytest.mark.parametrize(
         "banned",

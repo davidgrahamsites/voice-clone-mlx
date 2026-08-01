@@ -16,9 +16,9 @@ from types import MappingProxyType
 
 import pytest
 
-from voiceclonegpt.alignment.alignment_rows import accept_row, build_alignment_row
-from voiceclonegpt.dataset import dataset_rows
-from voiceclonegpt.dataset.dataset_rows import (
+from voiceclonemlx.alignment.alignment_rows import accept_row, build_alignment_row
+from voiceclonemlx.dataset import dataset_rows
+from voiceclonemlx.dataset.dataset_rows import (
     DATASET_SCHEMA_VERSION,
     DatasetRow,
     DatasetRowError,
@@ -32,7 +32,7 @@ AT = "2026-07-31T10:00:00Z"
 SHA = "a" * 64
 
 try:
-    from voiceclonegpt.alignment.overlap_gate import ClipDecision
+    from voiceclonemlx.alignment.overlap_gate import ClipDecision
 except ImportError:  # pragma: no cover - child worktrees lack the module
     # `alignment/overlap_gate.py` is on `main` but absent from some worktrees.
     # This mirrors its shape exactly so the same assertions run either way;
@@ -189,6 +189,7 @@ class TestChecksum:
             line for line in source.splitlines()
             if line.startswith(("import ", "from "))
         )
+        imports = imports.replace("voiceclonemlx.", "")
 
         assert "hashlib" not in imports
         # Needles built at runtime so this assertion is not its own match.
@@ -334,6 +335,7 @@ class TestSeamIsPure:
             line for line in source.splitlines()
             if line.startswith(("import ", "from "))
         )
+        imports = imports.replace("voiceclonemlx.", "")
 
         for banned in ("os", "pathlib", "hashlib", "datetime", "time",
                        "random", "wave", "numpy", "mlx", "urllib", "socket",

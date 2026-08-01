@@ -13,14 +13,14 @@ Safety invariants (no salvage, inertness, import purity) live in
 
 import pytest
 
-from voiceclonegpt.alignment.free_speech_plan import (
+from voiceclonemlx.alignment.free_speech_plan import (
     MAX_CANDIDATES,
     FreeSpeechCandidate,
     FreeSpeechPlanError,
     PlannedCandidate,
     plan_free_speech,
 )
-from voiceclonegpt.alignment.overlap_gate import ClipDecision, SpeakerTurn
+from voiceclonemlx.alignment.overlap_gate import ClipDecision, SpeakerTurn
 
 
 @pytest.fixture

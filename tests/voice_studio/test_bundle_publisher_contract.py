@@ -5,7 +5,7 @@ from dataclasses import replace
 import pytest
 
 from bundle_publisher_test_support import FakeCopier, _json, request, sha
-from voiceclonegpt.training.bundle_publisher import BundlePublicationError, publish_bundle
+from voiceclonemlx.training.bundle_publisher import BundlePublicationError, publish_bundle
 
 
 def test_runtime_report_bytes_must_match_the_accepted_bindings(tmp_path):

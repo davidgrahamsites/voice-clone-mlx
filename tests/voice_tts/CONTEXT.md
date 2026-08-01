@@ -6,7 +6,7 @@ sequence: semantic
 
 # tests/voice_tts — what is actually proven about the TTS seam
 
-Covers [`src/voiceclonegpt/tts/`](../../src/voiceclonegpt/tts/CONTEXT.md).
+Covers [`src/voiceclonemlx/tts/`](../../src/voiceclonemlx/tts/CONTEXT.md).
 Read that contract first; this file says only what the tests establish and how.
 
 ## Inputs
@@ -106,7 +106,7 @@ utterance stays without. `reader_app` is imported **read-only** and its
 discovery rule is never restated, so this test fails if the two ever drift.
 
 It also holds the isolation check: an AST scan asserting no module in
-`src/voiceclonegpt/` outside `tts/` imports `tts`, with a self-test proving
+`src/voiceclonemlx/` outside `tts/` imports `tts`, with a self-test proving
 the scan can fail and does not false-positive on `mlx_audio.tts.utils`.
 
 ## Outputs

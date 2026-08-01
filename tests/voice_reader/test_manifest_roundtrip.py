@@ -16,8 +16,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.reader_app import manifest_roundtrip
-from voiceclonegpt.reader_app.manifest_roundtrip import (
+from voiceclonemlx.reader_app import manifest_roundtrip
+from voiceclonemlx.reader_app.manifest_roundtrip import (
     ManifestRoundTripError,
     RoundTripResult,
     generate_missing_takes,
@@ -297,6 +297,7 @@ class TestSeamIsOrchestrationOnly:
             line for line in source.splitlines()
             if line.startswith(("import ", "from "))
         )
+        imports = imports.replace("voiceclonemlx.", "")
 
         for banned in ("mlx", "urllib", "requests", "socket", "subprocess",
                        "tkinter", "datetime", "time", "random"):

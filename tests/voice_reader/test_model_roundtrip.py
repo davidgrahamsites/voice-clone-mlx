@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.shared.roundtrip import RoundTripError, run_round_trip
+from voiceclonemlx.shared.roundtrip import RoundTripError, run_round_trip
 
 from test_model_bundle import _write_bundle
 

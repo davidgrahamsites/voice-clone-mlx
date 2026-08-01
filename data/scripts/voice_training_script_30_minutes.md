@@ -1,4 +1,4 @@
-# VoiceCloneGPT thirty-minute owner recording script
+# VoiceCloneMLX thirty-minute owner recording script
 
 This script is designed for approximately thirty minutes of captured speech,
 including required pauses. Record it as **two sessions** with a five-to-ten

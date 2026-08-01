@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.packaging import app_bundle
-from voiceclonegpt.packaging.app_bundle import (
+from voiceclonemlx.packaging import app_bundle
+from voiceclonemlx.packaging.app_bundle import (
     APP_SPECS,
     UnknownAppError,
     build_app_bundle,
@@ -27,7 +27,7 @@ from voiceclonegpt.packaging.app_bundle import (
 def repo_root(tmp_path):
     """A stand-in repo with the layout the launcher expects."""
     root = tmp_path / "repo"
-    (root / "src" / "voiceclonegpt").mkdir(parents=True)
+    (root / "src" / "voiceclonemlx").mkdir(parents=True)
     return root
 
 
@@ -47,11 +47,11 @@ class TestAppRegistry:
     def test_specs_name_their_module_and_bundle(self):
         studio = APP_SPECS["voice_studio"]
 
-        assert studio.module == "voiceclonegpt.studio_app"
+        assert studio.module == "voiceclonemlx.studio_app"
         assert studio.bundle_name == "Voice Studio"
 
         reader = APP_SPECS["voice_reader"]
-        assert reader.module == "voiceclonegpt.reader_app"
+        assert reader.module == "voiceclonemlx.reader_app"
         assert reader.bundle_name == "Voice Reader"
 
     def test_bundle_identifiers_are_distinct(self):
@@ -165,12 +165,12 @@ class TestLauncher:
     def test_runs_the_right_module(self, output_dir, repo_root):
         bundle = build_app_bundle("voice_studio", output_dir, repo_root)
 
-        assert "voiceclonegpt.studio_app" in self._launcher(bundle, "Voice Studio")
+        assert "voiceclonemlx.studio_app" in self._launcher(bundle, "Voice Studio")
 
     def test_reader_runs_the_reader_module(self, output_dir, repo_root):
         bundle = build_app_bundle("voice_reader", output_dir, repo_root)
 
-        assert "voiceclonegpt.reader_app" in self._launcher(bundle, "Voice Reader")
+        assert "voiceclonemlx.reader_app" in self._launcher(bundle, "Voice Reader")
 
     def test_sets_pythonpath_to_src(self, output_dir, repo_root):
         bundle = build_app_bundle("voice_studio", output_dir, repo_root)

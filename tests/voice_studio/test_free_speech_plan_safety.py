@@ -7,14 +7,14 @@ from pathlib import Path
 import pytest
 
 from free_speech_plan_test_support import candidate, local_assets
-from voiceclonegpt.alignment import free_speech_plan
-from voiceclonegpt.alignment.free_speech_plan import (
+from voiceclonemlx.alignment import free_speech_plan
+from voiceclonemlx.alignment.free_speech_plan import (
     MAX_CANDIDATES,
     FreeSpeechPlanError,
     PlannedCandidate,
     plan_free_speech,
 )
-from voiceclonegpt.alignment.overlap_gate import ClipDecision, SpeakerTurn
+from voiceclonemlx.alignment.overlap_gate import ClipDecision, SpeakerTurn
 
 SOURCE = Path(free_speech_plan.__file__).read_text(encoding="utf-8")
 TREE = ast.parse(SOURCE)

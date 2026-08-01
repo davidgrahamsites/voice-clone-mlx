@@ -13,9 +13,9 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.alignment import transcription_manifest
-from voiceclonegpt.alignment.whisper_json import Transcript, TranscriptSegment
-from voiceclonegpt.alignment.transcription_manifest import (
+from voiceclonemlx.alignment import transcription_manifest
+from voiceclonemlx.alignment.whisper_json import Transcript, TranscriptSegment
+from voiceclonemlx.alignment.transcription_manifest import (
     TRANSCRIPTION_SCHEMA_VERSION,
     TranscriptionRow,
     TranscriptionRowError,
@@ -256,7 +256,7 @@ class TestSeamIsPure:
         return " ".join(
             line for line in source.splitlines()
             if line.startswith(("import ", "from "))
-        )
+        ).replace("voiceclonemlx.", "")
 
     @pytest.mark.parametrize(
         "banned",

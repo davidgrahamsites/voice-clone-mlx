@@ -13,8 +13,8 @@ from types import MappingProxyType
 
 import pytest
 
-from voiceclonegpt.alignment import whisper_json
-from voiceclonegpt.alignment.whisper_json import (
+from voiceclonemlx.alignment import whisper_json
+from voiceclonemlx.alignment.whisper_json import (
     Transcript,
     TranscriptSegment,
     WhisperJsonError,

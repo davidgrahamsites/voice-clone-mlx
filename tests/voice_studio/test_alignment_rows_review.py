@@ -16,7 +16,7 @@ import json
 
 import pytest
 
-from voiceclonegpt.alignment.alignment_rows import (
+from voiceclonemlx.alignment.alignment_rows import (
     AlignmentRow,
     REVIEW_ACCEPTED,
     REVIEW_PENDING,

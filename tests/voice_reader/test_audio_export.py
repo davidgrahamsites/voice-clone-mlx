@@ -1,6 +1,6 @@
 import pytest
 
-from voiceclonegpt.reader_app.audio_export import (
+from voiceclonemlx.reader_app.audio_export import (
     AudioExportError,
     SUPPORTED_FORMATS,
     encode_audio,

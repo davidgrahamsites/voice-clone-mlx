@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.training.runtime_parity import (
+from voiceclonemlx.training.runtime_parity import (
     AutomatedParityResult,
     CandidatePromptEvidence,
     InvalidParityRequest,
@@ -301,7 +301,7 @@ def test_evaluator_failure_is_not_retried():
 
 
 def test_module_cannot_register_or_publish_a_runtime():
-    import voiceclonegpt.training.runtime_parity as module
+    import voiceclonemlx.training.runtime_parity as module
 
     source = Path(module.__file__).read_text(encoding="utf-8")
     imports = {

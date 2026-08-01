@@ -7,7 +7,7 @@ module arms it for every test in that module.
 
 import pytest
 
-from voiceclonegpt.ingestion import web
+from voiceclonemlx.ingestion import web
 
 
 class FakeHeaders(dict):

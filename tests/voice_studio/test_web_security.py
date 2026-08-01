@@ -7,7 +7,7 @@ the network or resolves a hostname.
 
 import pytest
 
-from voiceclonegpt.ingestion import web, web_body
+from voiceclonemlx.ingestion import web, web_body
 from web_test_support import (  # noqa: F401  (no_live_dns is autouse)
     FakeHeaders,
     FakeResponse,

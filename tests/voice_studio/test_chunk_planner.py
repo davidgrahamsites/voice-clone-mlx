@@ -1,6 +1,6 @@
 import pytest
 
-from voiceclonegpt.recording.chunk_planner import ChunkWindow, plan_chunks
+from voiceclonemlx.recording.chunk_planner import ChunkWindow, plan_chunks
 
 
 def test_plans_short_recording_as_one_window() -> None:

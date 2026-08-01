@@ -1,6 +1,6 @@
 # Verification — script generator (red/green record)
 
-Evidence for the two hardening passes on `voiceclonegpt.recording`. Every test
+Evidence for the two hardening passes on `voiceclonemlx.recording`. Every test
 below was written before the code that makes it pass, run to observe the
 failure, and re-run after the change.
 
@@ -57,11 +57,11 @@ $ python3 -m pytest tests/voice_studio/test_script_generator.py -k "RendererSeam
 
 | Failing test | Why it failed |
 |---|---|
-| `TestRendererSeam::test_render_script_is_importable_and_pure` | `ModuleNotFoundError: No module named 'voiceclonegpt.recording.script_rendering'` — rendering was a private function inside the coordinator, unreachable without running the whole pipeline against real files. |
+| `TestRendererSeam::test_render_script_is_importable_and_pure` | `ModuleNotFoundError: No module named 'voiceclonemlx.recording.script_rendering'` — rendering was a private function inside the coordinator, unreachable without running the whole pipeline against real files. |
 | `TestRendererSeam::test_render_script_emits_one_section_per_style` | Same import failure; section structure could previously only be asserted through generated output. |
 | `TestRendererSeam::test_render_script_skips_styles_without_utterances` | Same import failure. |
 | `TestRendererSeam::test_escape_markdown_neutralizes_structure` | Same import failure; escaping had no direct unit test, only end-to-end assertions. |
-| `TestStoreSeam::test_write_manifest_writes_one_json_object_per_line` | `ModuleNotFoundError: No module named 'voiceclonegpt.recording.script_storage'`. |
+| `TestStoreSeam::test_write_manifest_writes_one_json_object_per_line` | `ModuleNotFoundError: No module named 'voiceclonemlx.recording.script_storage'`. |
 | `TestStoreSeam::test_write_manifest_overwrites_previous_content` | Same import failure. |
 | `TestStoreSeam::test_write_manifest_preserves_unicode` | Same import failure. This test also pinned a real gap: the manifest writer used default `json.dumps`, which escapes non-ASCII to `\uXXXX`. |
 

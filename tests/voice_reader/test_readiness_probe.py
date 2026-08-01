@@ -14,8 +14,8 @@ import json
 
 import pytest
 
-from voiceclonegpt.synthesis import readiness
-from voiceclonegpt.synthesis.readiness import (
+from voiceclonemlx.synthesis import readiness
+from voiceclonemlx.synthesis.readiness import (
     BLOCKER_CONFIG_INVALID,
     check_runtime_readiness,
 )

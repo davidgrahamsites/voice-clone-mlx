@@ -15,9 +15,9 @@ import wave
 
 import pytest
 
-from voiceclonegpt.synthesis.mlx_qwen_runtime import RuntimeConfigError
-from voiceclonegpt.tts import qwen_mlx
-from voiceclonegpt.tts.backend import SynthesisError, SynthesisResult, TTSBackend
+from voiceclonemlx.synthesis.mlx_qwen_runtime import RuntimeConfigError
+from voiceclonemlx.tts import qwen_mlx
+from voiceclonemlx.tts.backend import SynthesisError, SynthesisResult, TTSBackend
 
 REF_TEXT = "This is the neutral reading."
 
@@ -317,7 +317,7 @@ class TestRefusals:
         assert runtime.synthesize_calls == []
 
     def test_a_runtime_failure_becomes_a_synthesis_error(self, tmp_path, config_path):
-        from voiceclonegpt.synthesis.mlx_qwen_runtime import (
+        from voiceclonemlx.synthesis.mlx_qwen_runtime import (
             SynthesisError as RuntimeSynthesisError,
         )
 

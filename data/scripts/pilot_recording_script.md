@@ -1,4 +1,4 @@
-# VoiceCloneGPT pilot recording script
+# VoiceCloneMLX pilot recording script
 
 This is a short recording-chain pilot, not the final ten-hour corpus. Use the
 same microphone, room, distance, posture, and gain you intend to use later.

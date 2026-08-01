@@ -16,9 +16,9 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.alignment.alignment_rows import accept_row, build_alignment_row
-from voiceclonegpt.dataset import dataset_rows
-from voiceclonegpt.dataset.dataset_rows import (
+from voiceclonemlx.alignment.alignment_rows import accept_row, build_alignment_row
+from voiceclonemlx.dataset import dataset_rows
+from voiceclonemlx.dataset.dataset_rows import (
     ACCEPT_STATUS,
     DATASET_SCHEMA_VERSION,
     DatasetRowError,
@@ -29,7 +29,7 @@ from voiceclonegpt.dataset.dataset_rows import (
 
 
 try:
-    from voiceclonegpt.alignment.overlap_gate import ClipDecision
+    from voiceclonemlx.alignment.overlap_gate import ClipDecision
 except ImportError:  # pragma: no cover - child worktrees lack the module
     # `alignment/overlap_gate.py` is on `main` but absent from some worktrees.
     # This mirrors its shape exactly so the same assertions run either way;

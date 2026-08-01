@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 
-from voiceclonegpt.training.bundle_publisher import (
+from voiceclonemlx.training.bundle_publisher import (
     BundlePublicationRequest,
     LicenseLayer,
     PayloadFile,

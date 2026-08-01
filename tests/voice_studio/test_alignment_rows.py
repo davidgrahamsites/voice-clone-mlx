@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.alignment import alignment_row_schema, alignment_rows
-from voiceclonegpt.alignment.alignment_rows import (
+from voiceclonemlx.alignment import alignment_row_schema, alignment_rows
+from voiceclonemlx.alignment.alignment_rows import (
     ALIGNMENT_SCHEMA_VERSION,
     REVIEW_ACCEPTED,
     REVIEW_PENDING,
@@ -311,6 +311,7 @@ class TestSeamIsPure:
                 line for line in source.splitlines()
                 if line.startswith(("import ", "from "))
             )
+            imports = imports.replace("voiceclonemlx.", "")
 
             for banned in ("os", "pathlib", "datetime", "time", "random",
                            "wave", "numpy", "mlx", "urllib", "socket",
@@ -353,4 +354,3 @@ class TestSeamIsPure:
             alignment_rows.AlignmentRowError
             is alignment_row_schema.AlignmentRowError
         )
-

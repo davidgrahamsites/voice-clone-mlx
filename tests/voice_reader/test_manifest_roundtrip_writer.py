@@ -14,8 +14,8 @@ import json
 
 import pytest
 
-from voiceclonegpt.reader_app import manifest_roundtrip
-from voiceclonegpt.reader_app.manifest_roundtrip import (
+from voiceclonemlx.reader_app import manifest_roundtrip
+from voiceclonemlx.reader_app.manifest_roundtrip import (
     ManifestRoundTripError,
     generate_missing_takes,
 )
@@ -207,7 +207,7 @@ class TestWriterIsNotBypassable:
 
     def test_default_writer_produces_reader_discoverable_names(self, manifest):
         """The whole point: `find_audio` must locate what was written."""
-        from voiceclonegpt.reader_app.core import find_audio
+        from voiceclonemlx.reader_app.core import find_audio
 
         generate_missing_takes(manifest, recording_synth())
 
@@ -216,7 +216,7 @@ class TestWriterIsNotBypassable:
 
     def test_generated_takes_are_visible_to_load_manifest(self, manifest):
         """A Reader reloading the manifest now sees audio for every take."""
-        from voiceclonegpt.reader_app.core import load_manifest
+        from voiceclonemlx.reader_app.core import load_manifest
 
         generate_missing_takes(manifest, recording_synth())
 

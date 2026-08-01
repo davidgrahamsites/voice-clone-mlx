@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.training.remote_training_run import (
+from voiceclonemlx.training.remote_training_run import (
     DatasetEvidence,
     InvalidTrainingRequest,
     InvalidTrainingResult,
@@ -226,7 +226,7 @@ def test_invalid_input_checksums_are_refused_before_provider_call(field):
 
 
 def test_module_has_no_app_provider_network_or_filesystem_dependency():
-    import voiceclonegpt.training.remote_training_run as module
+    import voiceclonemlx.training.remote_training_run as module
 
     source = Path(module.__file__).read_text(encoding="utf-8")
     tree = ast.parse(source)

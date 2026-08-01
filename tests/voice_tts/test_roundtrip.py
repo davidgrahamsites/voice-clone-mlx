@@ -10,10 +10,10 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.reader_app.core import find_audio, load_manifest
-from voiceclonegpt.tts.backend import FakeBackend
+from voiceclonemlx.reader_app.core import find_audio, load_manifest
+from voiceclonemlx.tts.backend import FakeBackend
 
-SRC_ROOT = Path(__file__).resolve().parents[2] / "src" / "voiceclonegpt"
+SRC_ROOT = Path(__file__).resolve().parents[2] / "src" / "voiceclonemlx"
 
 MANIFEST_ROWS = [
     {"id": "script_session_1_0001", "text": "The first line.", "style": "neutral"},
@@ -104,7 +104,7 @@ class TestIsolation:
 
     def test_the_scan_would_notice_an_import(self, tmp_path):
         """The check above is only worth having if it can fail."""
-        assert _names_tts("voiceclonegpt.tts.backend", 0)
+        assert _names_tts("voiceclonemlx.tts.backend", 0)
         assert _names_tts("tts.backend", 1)
         # mlx-audio's own `tts` subpackage is a different thing entirely.
         assert not _names_tts("mlx_audio.tts.utils", 0)
@@ -113,7 +113,7 @@ class TestIsolation:
 def _names_tts(module_name: str, level: int) -> bool:
     """True if an import target is *this package's* `tts` package.
 
-    Absolute imports must be `voiceclonegpt.tts...`; relative ones (`level`
+    Absolute imports must be `voiceclonemlx.tts...`; relative ones (`level`
     above zero) are already inside the package, so a leading `tts` is enough.
     Third-party modules with a `tts` submodule — mlx-audio has one — are not
     this package and must not be flagged.
@@ -121,4 +121,4 @@ def _names_tts(module_name: str, level: int) -> bool:
     parts = module_name.split(".") if module_name else []
     if level > 0:
         return parts[:1] == ["tts"]
-    return parts[:2] == ["voiceclonegpt", "tts"]
+    return parts[:2] == ["voiceclonemlx", "tts"]

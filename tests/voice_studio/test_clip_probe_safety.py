@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.dataset import clip_probe
-from voiceclonegpt.dataset.clip_probe import (
+from voiceclonemlx.dataset import clip_probe
+from voiceclonemlx.dataset.clip_probe import (
     MAX_CLIP_BYTES,
     ClipProbeError,
     probe_clip,

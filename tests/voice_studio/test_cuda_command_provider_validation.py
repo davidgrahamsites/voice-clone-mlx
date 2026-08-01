@@ -2,7 +2,7 @@
 
 import pytest
 
-from voiceclonegpt.training.cuda_command_provider import (
+from voiceclonemlx.training.cuda_command_provider import (
     CudaCommandTrainingProvider, InvalidCommandManifest, InvalidCommandResult,
 )
 from cuda_command_provider_test_support import RecordingRunner, approved, command_result, manifest, request

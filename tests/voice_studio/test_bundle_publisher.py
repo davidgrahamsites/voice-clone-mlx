@@ -7,7 +7,7 @@ from dataclasses import replace
 import pytest
 
 from bundle_publisher_test_support import FakeCopier, request, sha
-from voiceclonegpt.training.bundle_publisher import (
+from voiceclonemlx.training.bundle_publisher import (
     BundlePublicationError,
     ReferenceClip,
     publish_bundle,

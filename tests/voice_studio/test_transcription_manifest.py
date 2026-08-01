@@ -13,12 +13,12 @@ import json
 
 import pytest
 
-from voiceclonegpt.alignment.whisper_json import (
+from voiceclonemlx.alignment.whisper_json import (
     Transcript,
     TranscriptSegment,
     parse_whisper_json,
 )
-from voiceclonegpt.alignment.transcription_manifest import (
+from voiceclonemlx.alignment.transcription_manifest import (
     TRANSCRIPTION_SCHEMA_VERSION,
     TranscriptionRow,
     TranscriptionRowError,

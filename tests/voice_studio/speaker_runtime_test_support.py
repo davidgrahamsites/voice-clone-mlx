@@ -1,4 +1,4 @@
-from voiceclonegpt.alignment.speaker_runtime import RuntimeProvenance
+from voiceclonemlx.alignment.speaker_runtime import RuntimeProvenance
 
 
 def provenance():

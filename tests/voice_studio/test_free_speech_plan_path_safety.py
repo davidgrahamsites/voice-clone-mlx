@@ -12,13 +12,13 @@ import pytest
 
 from free_speech_plan_test_support import candidate, local_assets
 
-from voiceclonegpt.alignment import free_speech_plan
+from voiceclonemlx.alignment import free_speech_plan
 
-from voiceclonegpt.alignment.free_speech_plan import MAX_CANDIDATES, FreeSpeechPlanError, plan_free_speech
+from voiceclonemlx.alignment.free_speech_plan import MAX_CANDIDATES, FreeSpeechPlanError, plan_free_speech
 
-from voiceclonegpt.alignment.overlap_gate import SpeakerTurn
+from voiceclonemlx.alignment.overlap_gate import SpeakerTurn
 
-from voiceclonegpt.alignment.whisper_plan import WhisperPlanError
+from voiceclonemlx.alignment.whisper_plan import WhisperPlanError
 
 # --- path validation is not skippable by being rejected --------------------
 #

@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.training.cuda_command_provider import (
+from voiceclonemlx.training.cuda_command_provider import (
     CommandCancelled, CommandExecutionFailed, CommandOutputLimitExceeded,
     CommandRunnerStopped, CommandSafetyStop, CommandTimedOut, ConcurrentTraining,
     CudaCommandTrainingProvider, RecipeMismatch,
@@ -94,18 +94,18 @@ def test_unexpected_runner_error_is_wrapped_once_with_its_cause():
 
 
 def test_module_has_no_shell_network_vendor_or_app_dependency():
-    import voiceclonegpt.training.cuda_command_provider as module
+    import voiceclonemlx.training.cuda_command_provider as module
     source = Path(module.__file__).read_text(encoding="utf-8")
     tree = ast.parse(source)
     imported = {name for node in ast.walk(tree) for name in ([alias.name for alias in node.names] if isinstance(node, ast.Import) else [node.module or ""] if isinstance(node, ast.ImportFrom) else [])}
-    assert imported <= {"__future__", "dataclasses", "threading", "typing", "voiceclonegpt.training.cost_preflight", "voiceclonegpt.training.remote_training_run"}
+    assert imported <= {"__future__", "dataclasses", "threading", "typing", "voiceclonemlx.training.cost_preflight", "voiceclonemlx.training.remote_training_run"}
     assert "shell" not in source
     assert not any(word in source for word in ("subprocess", "socket", "requests", "boto", "runpod", "vastai", "studio_app", "reader_app"))
 
 
 def test_inconsistent_preflight_never_reaches_runner():
-    from voiceclonegpt.training.cost_preflight import PreflightDecision
-    from voiceclonegpt.training.cuda_command_provider import PreflightRejected
+    from voiceclonemlx.training.cost_preflight import PreflightDecision
+    from voiceclonemlx.training.cuda_command_provider import PreflightRejected
     runner = RecordingRunner(command_result())
     provider = CudaCommandTrainingProvider(manifest(), PreflightDecision(True, ("approval is contradictory",), 12.5), runner)
     with pytest.raises(PreflightRejected, match="contradictory"):

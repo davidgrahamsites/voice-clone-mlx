@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.shared.roundtrip import run_round_trip
-from voiceclonegpt.synthesis.null_runtime import NullRuntime
-from voiceclonegpt.synthesis.runtime_registry import (
+from voiceclonemlx.shared.roundtrip import run_round_trip
+from voiceclonemlx.synthesis.null_runtime import NullRuntime
+from voiceclonemlx.synthesis.runtime_registry import (
     RuntimeRegistry,
     RuntimeRegistrationError,
 )

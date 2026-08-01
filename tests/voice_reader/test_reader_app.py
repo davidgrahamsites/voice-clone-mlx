@@ -12,11 +12,11 @@ from types import SimpleNamespace
 
 import pytest
 
-from voiceclonegpt.reader_app.core import Player, Take, load_manifest
+from voiceclonemlx.reader_app.core import Player, Take, load_manifest
 
 
 #: Real Tk windows are only built when this is explicitly set to "1".
-UI_TESTS_ENV = "VOICECLONEGPT_RUN_UI_TESTS"
+UI_TESTS_ENV = "VOICECLONEMLX_RUN_UI_TESTS"
 
 #: Passed to `_open_hidden_root` by tests that drive the post-gate branches.
 OPTED_IN = {UI_TESTS_ENV: "1"}
@@ -130,7 +130,7 @@ class TestPlayer:
 
 class TestReaderWindow:
     def test_window_builds_and_lists_takes(self, reader_tk_root, manifest):
-        from voiceclonegpt.reader_app.ui import ReaderWindow
+        from voiceclonemlx.reader_app.ui import ReaderWindow
 
         window = ReaderWindow(reader_tk_root)
         assert str(window.play_button["state"]) == "disabled"
@@ -141,14 +141,14 @@ class TestReaderWindow:
         assert "1 with audio" in window.status_var.get()
 
     def test_load_error_shows_in_status_bar(self, reader_tk_root, tmp_path):
-        from voiceclonegpt.reader_app.ui import ReaderWindow
+        from voiceclonemlx.reader_app.ui import ReaderWindow
 
         window = ReaderWindow(reader_tk_root)
         window.load_path(tmp_path / "missing.jsonl")
         assert "not found" in window.status_var.get().lower()
 
     def test_play_without_selection_prompts(self, reader_tk_root, manifest):
-        from voiceclonegpt.reader_app.ui import ReaderWindow
+        from voiceclonemlx.reader_app.ui import ReaderWindow
 
         window = ReaderWindow(reader_tk_root)
         window.load_path(manifest)
@@ -156,14 +156,14 @@ class TestReaderWindow:
         assert "Select a take" in window.status_var.get()
 
     def test_open_uses_the_file_picker_seam(self, reader_tk_root, manifest):
-        from voiceclonegpt.reader_app.ui import ReaderWindow
+        from voiceclonemlx.reader_app.ui import ReaderWindow
 
         window = ReaderWindow(reader_tk_root, choose_file=lambda: str(manifest))
         window.on_open()
         assert window.take_list.size() == 2
 
     def test_play_uses_the_injected_player(self, reader_tk_root, manifest):
-        from voiceclonegpt.reader_app.ui import ReaderWindow
+        from voiceclonemlx.reader_app.ui import ReaderWindow
 
         played = []
 
@@ -182,8 +182,8 @@ class TestReaderWindow:
         assert played == ["NEUTRAL-001"]
 
     def test_reader_does_not_import_the_studio(self):
-        import voiceclonegpt.reader_app.core as core
-        import voiceclonegpt.reader_app.ui as ui
+        import voiceclonemlx.reader_app.core as core
+        import voiceclonemlx.reader_app.ui as ui
 
         for module in (core, ui):
             source = open(module.__file__, encoding="utf-8").read()
@@ -192,7 +192,7 @@ class TestReaderWindow:
     def test_generate_enables_only_after_ready_voice_and_text(
         self, reader_tk_root, tmp_path
     ):
-        from voiceclonegpt.reader_app.ui import ReaderWindow
+        from voiceclonemlx.reader_app.ui import ReaderWindow
 
         calls = []
 
@@ -249,7 +249,7 @@ class TestReaderWindow:
     def test_text_picker_ingests_through_the_controller(
         self, reader_tk_root, tmp_path
     ):
-        from voiceclonegpt.reader_app.ui import ReaderWindow
+        from voiceclonemlx.reader_app.ui import ReaderWindow
 
         text_path = tmp_path / "chapter.txt"
 

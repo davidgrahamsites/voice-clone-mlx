@@ -6,7 +6,7 @@ SNI. No test here touches the network or resolves a hostname.
 
 import pytest
 
-from voiceclonegpt.ingestion import web, web_transport
+from voiceclonemlx.ingestion import web, web_transport
 from web_test_support import (  # noqa: F401  (no_live_dns is autouse)
     FakeResponse,
     PAGE,

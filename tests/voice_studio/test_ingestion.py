@@ -5,9 +5,9 @@ import zipfile
 from pathlib import Path
 import pytest
 
-from voiceclonegpt.ingestion import parsers
-from voiceclonegpt.ingestion.parsers import parse_source_file, split_into_sentences
-from voiceclonegpt.shared.styles import normalize_style
+from voiceclonemlx.ingestion import parsers
+from voiceclonemlx.ingestion.parsers import parse_source_file, split_into_sentences
+from voiceclonemlx.shared.styles import normalize_style
 
 
 class TestTextParsing:

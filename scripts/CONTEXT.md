@@ -11,4 +11,4 @@ delegate all application rules to a source module. They must not download,
 install, call external services, or perform destructive cleanup.
 
 The current entry point is build_apps.py, which delegates deterministic
-macOS-wrapper creation to voiceclonegpt.packaging.app_bundle.
+macOS-wrapper creation to voiceclonemlx.packaging.app_bundle.

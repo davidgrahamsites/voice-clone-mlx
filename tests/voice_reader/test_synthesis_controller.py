@@ -7,12 +7,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from voiceclonegpt.reader_app.synthesis_controller import (
+from voiceclonemlx.reader_app.synthesis_controller import (
     ReaderSynthesisController,
     ReaderSynthesisControllerError,
     VoiceChoice,
 )
-from voiceclonegpt.reader_app.synthesis_session import ReaderSynthesisSession
+from voiceclonemlx.reader_app.synthesis_session import ReaderSynthesisSession
 
 
 class FakeRegistry:

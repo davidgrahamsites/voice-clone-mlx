@@ -12,7 +12,7 @@ import json
 
 import pytest
 
-from voiceclonegpt.reader_app.core import find_audio, load_manifest
+from voiceclonemlx.reader_app.core import find_audio, load_manifest
 
 
 @pytest.fixture

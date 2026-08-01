@@ -7,8 +7,8 @@ Every backend is a plain fake: no test opens audio, loads a model, or reaches
 
 import pytest
 
-from voiceclonegpt.alignment.overlap_gate import SpeakerTurn
-from voiceclonegpt.alignment.speaker_runtime import (
+from voiceclonemlx.alignment.overlap_gate import SpeakerTurn
+from voiceclonemlx.alignment.speaker_runtime import (
     MAX_DURATION_S,
     MAX_ENROLLMENT_FILES,
     MAX_TIMEOUT_S,

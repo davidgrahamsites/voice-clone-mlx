@@ -6,7 +6,7 @@ import wave
 
 import pytest
 
-from voiceclonegpt.tts.backend import (
+from voiceclonemlx.tts.backend import (
     FakeBackend,
     SynthesisError,
     SynthesisResult,
@@ -127,12 +127,12 @@ class TestNoGodObject:
 
     #: The only in-package import allowed here: the stub audio it reuses
     #: rather than re-implements.
-    ALLOWED_PACKAGE_IMPORTS = {"voiceclonegpt.synthesis.null_runtime"}
+    ALLOWED_PACKAGE_IMPORTS = {"voiceclonemlx.synthesis.null_runtime"}
 
     def test_the_module_imports_only_stdlib_and_the_stub_it_reuses(self):
         import ast
 
-        import voiceclonegpt.tts.backend as backend
+        import voiceclonemlx.tts.backend as backend
 
         tree = ast.parse(open(backend.__file__, encoding="utf-8").read())
         imported = []
@@ -146,7 +146,7 @@ class TestNoGodObject:
             if name in self.ALLOWED_PACKAGE_IMPORTS:
                 continue
             root = name.split(".")[0]
-            assert root != "voiceclonegpt", f"backend.py should not import {name}"
+            assert root != "voiceclonemlx", f"backend.py should not import {name}"
             assert root in sys.stdlib_module_names, f"backend.py should not import {name}"
 
     def test_the_backend_offers_no_model_or_queue_management(self):

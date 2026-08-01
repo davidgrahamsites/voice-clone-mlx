@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 import pytest
 
-from voiceclonegpt.recording.script_generator import (
+from voiceclonemlx.recording.script_generator import (
     generate_script,
     ScriptOutput,
 )

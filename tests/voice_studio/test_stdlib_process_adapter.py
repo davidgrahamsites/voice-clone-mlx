@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from voiceclonegpt.training.cuda_command_provider import CommandPlan
-from voiceclonegpt.training.stdlib_process_adapter import (
+from voiceclonemlx.training.cuda_command_provider import CommandPlan
+from voiceclonemlx.training.stdlib_process_adapter import (
     JsonLineResultMapper,
     ResultMappingError,
     StdlibProcessFactory,

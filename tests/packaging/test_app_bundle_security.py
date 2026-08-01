@@ -15,8 +15,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.packaging import app_bundle
-from voiceclonegpt.packaging.app_bundle import (
+from voiceclonemlx.packaging import app_bundle
+from voiceclonemlx.packaging.app_bundle import (
     APP_SPECS,
     BundleExistsError,
     UnsafeOutputError,
@@ -28,7 +28,7 @@ from voiceclonegpt.packaging.app_bundle import (
 def repo_root(tmp_path):
     """A stand-in repo with the layout the launcher expects."""
     root = tmp_path / "repo"
-    (root / "src" / "voiceclonegpt").mkdir(parents=True)
+    (root / "src" / "voiceclonemlx").mkdir(parents=True)
     return root
 
 

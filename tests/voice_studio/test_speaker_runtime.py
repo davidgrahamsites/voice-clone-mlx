@@ -10,9 +10,9 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.alignment.free_speech_plan import FreeSpeechCandidate
-from voiceclonegpt.alignment.overlap_gate import ClipDecision, SpeakerTurn, decide_clip
-from voiceclonegpt.alignment.speaker_runtime import SpeakerScore, run_speaker_runtime
+from voiceclonemlx.alignment.free_speech_plan import FreeSpeechCandidate
+from voiceclonemlx.alignment.overlap_gate import ClipDecision, SpeakerTurn, decide_clip
+from voiceclonemlx.alignment.speaker_runtime import SpeakerScore, run_speaker_runtime
 
 from speaker_runtime_test_support import provenance
 
@@ -187,7 +187,7 @@ def test_evidence_is_frozen(tmp_path):
 
 
 def test_module_imports_no_backend_process_network_or_audio_package():
-    source_path = Path(__file__).parents[2] / "src/voiceclonegpt/alignment/speaker_runtime.py"
+    source_path = Path(__file__).parents[2] / "src/voiceclonemlx/alignment/speaker_runtime.py"
     tree = ast.parse(source_path.read_text(encoding="utf-8"))
     roots = {
         alias.name.split(".")[0]

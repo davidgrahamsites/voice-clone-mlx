@@ -21,8 +21,8 @@ import json
 
 import pytest
 
-from voiceclonegpt.synthesis import readiness
-from voiceclonegpt.synthesis.readiness import check_runtime_readiness
+from voiceclonemlx.synthesis import readiness
+from voiceclonemlx.synthesis.readiness import check_runtime_readiness
 
 #: The runtime variant every readiness test asks about.
 RUNTIME_ID = "mlx_qwen"

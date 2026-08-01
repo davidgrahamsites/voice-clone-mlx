@@ -2,21 +2,21 @@
 
 import pytest
 
-from voiceclonegpt.alignment.free_speech_plan import (
+from voiceclonemlx.alignment.free_speech_plan import (
     FreeSpeechCandidate,
     PlannedCandidate,
 )
-from voiceclonegpt.alignment.overlap_gate import ClipDecision, SpeakerTurn
-from voiceclonegpt.alignment.transcription_manifest import (
+from voiceclonemlx.alignment.overlap_gate import ClipDecision, SpeakerTurn
+from voiceclonemlx.alignment.transcription_manifest import (
     TRANSCRIPTION_SCHEMA_VERSION,
     TranscriptionRow,
     rows_to_jsonl,
 )
-from voiceclonegpt.alignment.whisper_plan import WhisperPlan
-from voiceclonegpt.dataset.clip_probe import ClipMeasurement
-from voiceclonegpt.dataset.dataset_rows import parse_dataset_json
-from voiceclonegpt.dataset.split_plan import plan_splits
-from voiceclonegpt.studio_app.free_speech_dataset_pipeline import (
+from voiceclonemlx.alignment.whisper_plan import WhisperPlan
+from voiceclonemlx.dataset.clip_probe import ClipMeasurement
+from voiceclonemlx.dataset.dataset_rows import parse_dataset_json
+from voiceclonemlx.dataset.split_plan import plan_splits
+from voiceclonemlx.studio_app.free_speech_dataset_pipeline import (
     DatasetPipelineError,
     HumanReview,
     RuntimeCandidate,

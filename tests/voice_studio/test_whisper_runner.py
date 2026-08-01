@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.alignment.whisper_plan import WhisperPlan
-from voiceclonegpt.alignment.whisper_runner import WhisperRunnerError, run_whisper_plan
+from voiceclonemlx.alignment.whisper_plan import WhisperPlan
+from voiceclonemlx.alignment.whisper_runner import WhisperRunnerError, run_whisper_plan
 
 
 def plan() -> WhisperPlan:
@@ -142,6 +142,6 @@ def test_refuses_an_unbounded_or_unusable_timeout(timeout_s):
 
 
 def test_runner_never_imports_the_backend_package():
-    source = Path(__file__).parents[2] / "src/voiceclonegpt/alignment/whisper_runner.py"
+    source = Path(__file__).parents[2] / "src/voiceclonemlx/alignment/whisper_runner.py"
 
     assert "import mlx_whisper" not in source.read_text(encoding="utf-8")

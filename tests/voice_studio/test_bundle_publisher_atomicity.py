@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from bundle_publisher_test_support import FakeCopier, request
-from voiceclonegpt.training.bundle_publisher import BundlePublicationError, publish_bundle
+from voiceclonemlx.training.bundle_publisher import BundlePublicationError, publish_bundle
 
 
 def test_existing_destination_is_never_overwritten(tmp_path: Path):
@@ -43,7 +43,7 @@ def test_copy_failure_or_corruption_leaves_no_partial_bundle(
 
 
 def test_atomic_rename_failure_leaves_no_partial_bundle(tmp_path: Path, monkeypatch):
-    import voiceclonegpt.training.bundle_publisher as module
+    import voiceclonemlx.training.bundle_publisher as module
 
     publication = request(tmp_path)
 
@@ -60,7 +60,7 @@ def test_atomic_rename_failure_leaves_no_partial_bundle(tmp_path: Path, monkeypa
 
 
 def test_published_manifest_is_accepted_by_shared_bundle_reader(tmp_path: Path):
-    from voiceclonegpt.shared.bundle_reader import read_bundle
+    from voiceclonemlx.shared.bundle_reader import read_bundle
 
     published = publish_bundle(request(tmp_path), FakeCopier())
 
@@ -68,7 +68,7 @@ def test_published_manifest_is_accepted_by_shared_bundle_reader(tmp_path: Path):
 
 
 def test_module_is_detachable_and_has_no_runtime_or_catalog_dependency():
-    import voiceclonegpt.training.bundle_publisher as module
+    import voiceclonemlx.training.bundle_publisher as module
 
     source = Path(module.__file__).read_text(encoding="utf-8")
     imported = {

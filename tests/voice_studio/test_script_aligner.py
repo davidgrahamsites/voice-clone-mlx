@@ -14,15 +14,15 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.alignment import script_aligner
-from voiceclonegpt.alignment.alignment_rows import REVIEW_PENDING
-from voiceclonegpt.alignment.marker_windows import StyleWindow
-from voiceclonegpt.alignment.script_aligner import (
+from voiceclonemlx.alignment import script_aligner
+from voiceclonemlx.alignment.alignment_rows import REVIEW_PENDING
+from voiceclonemlx.alignment.marker_windows import StyleWindow
+from voiceclonemlx.alignment.script_aligner import (
     MISMATCH_TEXT,
     ScriptAlignerError,
     align_window,
 )
-from voiceclonegpt.alignment.whisper_json import Transcript, TranscriptSegment
+from voiceclonemlx.alignment.whisper_json import Transcript, TranscriptSegment
 
 MASTER = "01_recording/output/session-1.wav"
 
@@ -226,7 +226,7 @@ class TestResultContract:
             align()[0].review_state = "accepted"
 
     def test_rows_serialize_through_the_existing_manifest_writer(self):
-        from voiceclonegpt.alignment.alignment_rows import (
+        from voiceclonemlx.alignment.alignment_rows import (
             parse_alignment_jsonl,
             rows_to_jsonl,
         )
@@ -248,6 +248,7 @@ class TestSeamIsPure:
             line for line in source.splitlines()
             if line.startswith(("import ", "from "))
         )
+        imports = imports.replace("voiceclonemlx.", "")
 
         for banned in ("os", "pathlib", "datetime", "time", "random", "wave",
                        "numpy", "mlx", "urllib", "socket", "subprocess",
@@ -274,4 +275,3 @@ class TestSeamIsPure:
 
         assert "studio_app" not in source
         assert "reader_app" not in source
-

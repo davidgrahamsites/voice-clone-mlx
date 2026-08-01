@@ -1,6 +1,6 @@
-# VoiceCloneGPT plan
+# VoiceCloneMLX plan
 
-VoiceCloneGPT consists of two local-first applications that share a versioned
+VoiceCloneMLX consists of two local-first applications that share a versioned
 voice model and a normalized text format.
 
 ## App 1: Voice Studio

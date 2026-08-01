@@ -11,16 +11,16 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.reader_app.composition import (
+from voiceclonemlx.reader_app.composition import (
     build_runtime_registry,
     build_synthesis_controller,
 )
-from voiceclonegpt.reader_app.synthesis_controller import ReaderSynthesisController
-from voiceclonegpt.synthesis.readiness import (
+from voiceclonemlx.reader_app.synthesis_controller import ReaderSynthesisController
+from voiceclonemlx.synthesis.readiness import (
     BLOCKER_RUNTIME_NOT_REGISTERED,
     check_runtime_readiness,
 )
-from voiceclonegpt.synthesis.runtime_registry import (
+from voiceclonemlx.synthesis.runtime_registry import (
     RuntimeRegistrationError,
     RuntimeRegistry,
 )
@@ -129,7 +129,7 @@ class TestCompositionRootIsDetachable:
 
     def test_only_reader_ui_imports_composition(self):
         package = Path(build_runtime_registry.__module__.split(".")[0])
-        root = Path(__file__).resolve().parents[2] / "src" / "voiceclonegpt"
+        root = Path(__file__).resolve().parents[2] / "src" / "voiceclonemlx"
         importers = []
 
         for path in root.rglob("*.py"):
@@ -148,10 +148,10 @@ class TestCompositionRootIsDetachable:
         assert importers == ["reader_app/ui.py"], (
             f"composition has unexpected importers: {importers}"
         )
-        assert package.name == "voiceclonegpt"
+        assert package.name == "voiceclonemlx"
 
     def test_imports_no_ui_or_backend(self):
-        import voiceclonegpt.reader_app.composition as module
+        import voiceclonemlx.reader_app.composition as module
 
         source = Path(module.__file__).read_text(encoding="utf-8")
         imports = " ".join(
@@ -159,6 +159,7 @@ class TestCompositionRootIsDetachable:
             for line in source.splitlines()
             if line.startswith(("import ", "from "))
         )
+        imports = imports.replace("voiceclonemlx.", "")
 
         assert "ui" not in imports
         assert "tts" not in imports

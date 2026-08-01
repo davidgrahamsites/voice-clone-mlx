@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111210">
+  <title>About — VoiceCloneMLX</title>
+  <link rel="stylesheet" href="document.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-nav">
+      <a class="wordmark" href="index.html">VOICECLONEMLX / DOCUMENTS</a>
+      <nav aria-label="Document navigation">
+        <a href="index.html">Project</a>
+        <a href="procedure.html">Procedure</a>
+        <a href="recording-script.html">Script</a>
+        <a href="README.html">Guide</a>
+      </nav>
+    </div>
+  </header>
+  <main class="doc-shell">
+    <div class="doc-kicker">VoiceCloneMLX / About</div>
+    <h1 id="about-voiceclonemlx">About VoiceCloneMLX</h1>
+    <h2 id="short-description">Short description</h2>
+    <p>VoiceCloneMLX is a private, local-first macOS workspace for
+    creating an expressive voice model from the owner's recordings and
+    using that model to read the owner's writing aloud. <strong>Voice
+    Studio</strong> records, transcribes, aligns, and rejects
+    contaminated clips. <strong>Voice Reader</strong> imports reviewed
+    text and generates resumable audio from an explicitly verified voice
+    bundle.</p>
+    <h2 id="the-promise">The promise</h2>
+    <p>Your recordings stay under your control. The project is designed
+    around clean single-speaker evidence, deliberate expressive styles,
+    reproducible manifests, versioned model bundles, and a clear
+    separation between the app that produces a voice and the app that
+    consumes it.</p>
+    <h2 id="the-boundary">The boundary</h2>
+    <p>This is a personal, non-commercial utility—not a hosted voice
+    service. It does not upload private data by default, accept a clip
+    with overlapping speakers, or call a silent placeholder a trained
+    model. The repository's software contracts and tests are
+    substantially built; the final provider installation, model
+    training/conversion, and audible real-model verification remain
+    explicit gates.</p>
+    <h2 id="suggested-first-run">Suggested first run</h2>
+    <ol type="1">
+    <li>Read the <a href="procedure.html">real round-trip
+    procedure</a>.</li>
+    <li>Record the <a href="recording-script.html">30-minute pilot
+    script</a>.</li>
+    <li>Inspect the masters, transcripts, rejection decisions, and
+    checksums.</li>
+    <li>Run the bounded backend smoke test before spending GPU
+    time.</li>
+    <li>Promote a model only after a human listens to held-out prompts
+    and confirms that the output is non-silent, intelligible,
+    expressive, and recognizably the intended speaker.</li>
+    </ol>
+    <p>For the complete repository map and commands, see the <a
+    href="README.html">README</a>.</p>
+    <a class="source-link" href="ABOUT.md">Open the Markdown source ↗</a>
+  </main>
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>Private, local-first, and explicit about what has been verified.</span>
+      <a href="index.html">Back to the project page →</a>
+    </div>
+  </footer>
+</body>
+</html>

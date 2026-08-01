@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from voiceclonegpt.training.cuda_command_provider import CommandPlan, CommandResult
+from voiceclonemlx.training.cuda_command_provider import CommandPlan, CommandResult
 import pytest
 
-from voiceclonegpt.training.local_command_runner import (
+from voiceclonemlx.training.local_command_runner import (
     CancellationToken,
     LocalCommandCancelled,
     LocalCommandConcurrencyError,

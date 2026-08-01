@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111210">
+  <title>Real voice round-trip procedure — VoiceCloneMLX</title>
+  <link rel="stylesheet" href="document.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-nav">
+      <a class="wordmark" href="index.html">VOICECLONEMLX / DOCUMENTS</a>
+      <nav aria-label="Document navigation">
+        <a href="index.html">Project</a>
+        <a href="procedure.html">Procedure</a>
+        <a href="recording-script.html">Script</a>
+        <a href="README.html">Guide</a>
+      </nav>
+    </div>
+  </header>
+  <main class="doc-shell">
+    <div class="doc-kicker">VoiceCloneMLX / Real voice round-trip
+procedure</div>
+    <h1 id="voiceclonemlx-real-voice-round-trip-procedure">VoiceCloneMLX
+    real-voice round-trip procedure</h1>
+    <h2 id="purpose-and-current-status">Purpose and current status</h2>
+    <p>This manual describes how to move from a clean recording of the
+    owner's voice to a learned voice-model bundle that Voice Reader can
+    load locally on an Apple Silicon Mac.</p>
+    <p>The repository currently provides tested, modular contracts for
+    recording, transcription planning, speaker/overlap evidence, dataset
+    review, bounded training, source-model approval, MLX conversion,
+    parity approval, immutable bundle publication, Reader readiness, and
+    WAV/MP3 output. It does <strong>not</strong> yet provide one command
+    that executes the whole lifecycle. Real dependencies, model weights,
+    a graphics-processor training provider, and real listening approval
+    are not installed or configured.</p>
+    <p>Do not call any of these a trained personal voice:</p>
+    <ul>
+    <li>a short reference-audio clone;</li>
+    <li>the silent <code>NullRuntime</code> used by tests;</li>
+    <li>a fake-backed passing test;</li>
+    <li>an empty or metadata-only bundle; or</li>
+    <li>a converted model that has not passed parity and listening
+    review.</li>
+    </ul>
+    <p>Completion means all of the following are true: a reviewed
+    owner-only dataset produced a learned checkpoint; that checkpoint
+    was approved; its MLX conversion passed the frozen parity set; a
+    complete checksummed bundle was published; Voice Reader loaded the
+    exact declared runtime; and a human heard a non-silent WAV or MP3
+    output that was intelligible and recognizably the owner. Reader can
+    then encode that verified WAV locally as MP3 when the output
+    filename ends in <code>.mp3</code>.</p>
+    <h2 id="non-negotiable-safety-rules">Non-negotiable safety
+    rules</h2>
+    <ol type="1">
+    <li>Use only the owner's voice and material the owner is authorized
+    to use.</li>
+    <li>Keep raw recordings local unless the owner explicitly approves a
+    named provider and upload scope.</li>
+    <li>Reject an entire candidate clip if another voice overlaps any
+    part of it. Do not use source separation to rescue it for
+    training.</li>
+    <li>Never automatically approve a transcript, dataset row,
+    checkpoint, runtime conversion, parity result, or final voice.</li>
+    <li>Never burst an application programming interface (API), model
+    host, website, graphics-processor provider, or Git. Use one request
+    or job at a time.</li>
+    <li>Stop on authentication, quota, rate-limit, checksum, path, or
+    repeated execution errors. Do not silently retry or fall back to a
+    different model.</li>
+    <li>Never overwrite raw recordings, accepted datasets, checkpoints,
+    model versions, or published bundles.</li>
+    <li>Keep API keys, passwords, account numbers, home addresses,
+    private URLs, and unreleased confidential text out of recordings and
+    manifests.</li>
+    </ol>
+    <h2 id="required-approvals-before-real-execution">Required approvals
+    before real execution</h2>
+    <p>Record each approval in the run notes before performing the
+    operation.</p>
+    <ul class="task-list">
+    <li><label><input type="checkbox" />Permission to create
+    <code>/Users/appleadmin/Apps/VoiceCloneGPT/.venv</code>.</label></li>
+    <li><label><input type="checkbox" />Permission to install exact
+    pinned MLX/Whisper dependencies.</label></li>
+    <li><label><input type="checkbox" />Acceptance of the exact Qwen,
+    converter, and runtime licenses/revisions.</label></li>
+    <li><label><input type="checkbox" />Permission to download exact
+    model assets to named local directories.</label></li>
+    <li><label><input type="checkbox" />Consent to record, transcribe,
+    retain, and train on the owner's voice.</label></li>
+    <li><label><input type="checkbox" />A named remote GPU provider,
+    maximum dollar cost, maximum runtime, retention period, deletion
+    procedure, and approved upload contents.</label></li>
+    <li><label><input type="checkbox" />Permission to create run,
+    checkpoint, conversion, bundle, and output files.</label></li>
+    <li><label><input type="checkbox" />Permission to play generated
+    audio for listening review.</label></li>
+    <li><label><input type="checkbox" />Named human reviewers for
+    dataset, source checkpoint, MLX parity, bundle, and final listening
+    acceptance.</label></li>
+    </ul>
+    <p>The required approval wording for an agent-run mutation is:</p>
+    <pre class="text"><code>APPROVED WRITE: &lt;exact paths or external operation&gt;.
+Budget: &lt;maximum amount or “no external spend”&gt;.
+Data allowed: &lt;exact files or “no upload”&gt;.
+Rollback/deletion: &lt;exact procedure&gt;.</code></pre>
+    <h2 id="stage-0--freeze-the-experiment">Stage 0 — Freeze the
+    experiment</h2>
+    <p>Create a run record before recording or downloading anything.</p>
+    <p>Choose and write down:</p>
+    <ul>
+    <li><code>voice_id</code>: a stable safe identifier, such as
+    <code>david-narrator</code>;</li>
+    <li><code>run_id</code>: UTC date and purpose, such as
+    <code>2026-08-01-pilot-01</code>;</li>
+    <li>recording device, room, microphone distance, gain, and recorder
+    settings;</li>
+    <li>source model repository and exact revision;</li>
+    <li>fine-tuning recipe and exact revision;</li>
+    <li>converter and exact revision;</li>
+    <li>MLX-Audio version/revision;</li>
+    <li>frozen evaluation prompts and thresholds;</li>
+    <li>GPU provider, budget, time limit, and deletion policy; and</li>
+    <li>the people who will approve each human gate.</li>
+    </ul>
+    <p>The intended artifact layout is:</p>
+    <pre class="text"><code>data/voices/&lt;voice-id&gt;/
+  enrollment/
+  runs/&lt;run-id&gt;/
+    01_recording/
+    02_transcription/
+    03_speaker-evidence/
+    04_alignment-review/
+    05_dataset/
+    06_training/
+    07_source-evaluation/
+    08_conversion/
+    09_runtime-parity/
+    10_bundle-publication/
+  models/versions/&lt;model-version&gt;/
+  promoted.json</code></pre>
+    <p>This blank run tree is not generated automatically yet. Create it
+    only after a scoped write approval. Never reuse a prior run
+    directory.</p>
+    <h2 id="stage-1--prepare-the-native-apple-silicon-environment">Stage
+    1 — Prepare the native Apple Silicon environment</h2>
+    <p>The Mac is Apple Silicon (<code>arm64</code>).
+    <code>/usr/local/bin/python3</code> is an Intel interpreter on this
+    machine. The intended native interpreter is:</p>
+    <pre class="text"><code>/opt/homebrew/bin/python3.13</code></pre>
+    <p>After explicit install approval, create a project-local
+    environment:</p>
+    <div class="sourceCode" id="cb4"><pre
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /Users/appleadmin/Apps/VoiceCloneGPT</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">/opt/homebrew/bin/python3.13</span> <span class="at">-m</span> venv .venv</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">.venv/bin/python</span> <span class="at">-c</span> <span class="st">&#39;import platform; print(platform.machine())&#39;</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ex">.venv/bin/python</span> <span class="at">-m</span> pip install <span class="at">--require-hashes</span> <span class="at">-r</span> requirements-mlx.lock</span></code></pre></div>
+    <p>The architecture check must print <code>arm64</code>. Do not
+    continue if it prints <code>x86_64</code>.</p>
+    <p><strong>Stop:</strong> <code>requirements-mlx.lock</code> does
+    not exist yet. Do not replace the locked command with an unpinned
+    <code>pip install</code>. A separate approved dependency task must
+    resolve compatible versions, record every transitive
+    package/version/hash, review the resulting lock, and add the file
+    before this command can run. The official MLX-Audio project
+    currently documents its package and requirements at: <a
+    href="https://github.com/Blaizzy/mlx-audio">https://github.com/Blaizzy/mlx-audio</a>.
+    Do not start its web server; VoiceCloneMLX uses local
+    library/runtime seams.</p>
+    <p>Verify imports without loading a model:</p>
+    <div class="sourceCode" id="cb5"><pre
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">.venv/bin/python</span> <span class="at">-c</span> <span class="st">&#39;import mlx; import mlx_audio; import mlx_whisper; print(&quot;imports ok&quot;)&#39;</span></span></code></pre></div>
+    <p>The native-launcher patch is prepared separately and
+    intentionally unmerged. Merge it only after
+    <code>.venv/bin/python</code> exists and passes the architecture and
+    import checks. Otherwise both <code>.app</code> launchers would
+    correctly refuse to run.</p>
+    <h2 id="stage-2--build-and-smoke-test-the-local-apps">Stage 2 —
+    Build and smoke-test the local apps</h2>
+    <p>Current source entry points are:</p>
+    <div class="sourceCode" id="cb6"><pre
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /Users/appleadmin/Apps/VoiceCloneGPT</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span>src <span class="ex">.venv/bin/python</span> <span class="at">-m</span> voiceclonemlx.studio_app</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span>src <span class="ex">.venv/bin/python</span> <span class="at">-m</span> voiceclonemlx.reader_app</span></code></pre></div>
+    <p>Build the wrappers after the native-launcher change is
+    integrated. <code>--replace</code> deletes and recreates the two
+    generated bundles, so first copy the existing
+    <code>apps/Voice Studio.app</code> and
+    <code>apps/Voice Reader.app</code> to a dated backup directory and
+    obtain an explicit replace approval. Rollback is deleting the failed
+    new wrappers and restoring both backed-up bundles together.</p>
+    <div class="sourceCode" id="cb7"><pre
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span>src <span class="ex">.venv/bin/python</span> scripts/build_apps.py <span class="at">--replace</span></span></code></pre></div>
+    <p>Expected bundles:</p>
+    <pre class="text"><code>apps/Voice Studio.app
+apps/Voice Reader.app</code></pre>
+    <p>Manual checks:</p>
+    <ul class="task-list">
+    <li><label><input type="checkbox" />Voice Studio opens from
+    Finder.</label></li>
+    <li><label><input type="checkbox" />Voice Reader opens from
+    Finder.</label></li>
+    <li><label><input type="checkbox" />Voice Studio requests microphone
+    permission only after Record is clicked.</label></li>
+    <li><label><input type="checkbox" />Voice Reader does not request
+    microphone permission.</label></li>
+    <li><label><input type="checkbox" />Both apps show a clear error
+    when a required local dependency is missing.</label></li>
+    <li><label><input type="checkbox" />No model download starts during
+    app launch.</label></li>
+    </ul>
+    <h2 id="stage-3--record-the-30-minute-pilot">Stage 3 — Record the
+    30-minute pilot</h2>
+    <p>Use <a
+    href="../data/scripts/voice_training_script_30_minutes.md"><code>data/scripts/voice_training_script_30_minutes.md</code></a>.
+    It is designed as two approximately fifteen-minute sessions so vocal
+    fatigue does not become part of the learned voice.</p>
+    <h3 id="recorder-and-room">Recorder and room</h3>
+    <p>Audio terms used below:</p>
+    <ul>
+    <li><strong>Room tone:</strong> the natural sound of the room while
+    nobody speaks.</li>
+    <li><strong>Gain:</strong> the recorder's input-amplification
+    setting.</li>
+    <li><strong>dBFS:</strong> decibels relative to the loudest digital
+    level; zero dBFS is the clipping ceiling.</li>
+    <li><strong>Clipping:</strong> flat-topped distortion caused when
+    the input is too loud.</li>
+    <li><strong>WAV/PCM:</strong> a WAV container holding uncompressed
+    pulse-code-modulated audio.</li>
+    </ul>
+    <ol type="1">
+    <li>Use lossless WAV/PCM at the recorder's highest reliable
+    quality.</li>
+    <li>Keep one room, device, orientation, distance, gain, posture, and
+    signal path.</li>
+    <li>Disable automatic gain, compression, reverb, and aggressive
+    enhancement.</li>
+    <li>Aim for peaks near -12 to -6 dBFS without clipping.</li>
+    <li>Record thirty seconds of room tone at the beginning and end of
+    each session.</li>
+    <li>Keep the untouched master. Processing always uses a derived
+    copy.</li>
+    </ol>
+    <h3 id="reading-protocol">Reading protocol</h3>
+    <ol type="1">
+    <li>Do not speak prompt IDs, headings, pause instructions, or
+    notes.</li>
+    <li>At each style block, say exactly:
+    <code>This is the &lt;style&gt; reading.</code></li>
+    <li>Wait three seconds after the marker. Count silently:
+    “one-Mississippi, two-Mississippi, three-Mississippi.”</li>
+    <li>Read each numbered prompt naturally and wait two seconds after
+    the prompt's final word. Count silently: “one-Mississippi,
+    two-Mississippi.” This pause does not repeat after every word,
+    clause, or internal breath.</li>
+    <li>A long prompt or calibration passage may contain natural breaths
+    at commas, semicolons, and sentence endings. Keep the recorder
+    running; do not insert a deliberate two- or three-second gap at
+    every internal punctuation mark.</li>
+    <li>If a word is wrong, stop, wait two seconds, and reread the whole
+    prompt once.</li>
+    <li>If another person speaks over any part, continue only after a
+    clean pause; the mixed candidate will be rejected in full.</li>
+    <li>Stop at a prompt boundary if the voice becomes dry, strained,
+    breathy, rushed, unusually high/low, or materially quieter/louder.
+    Rest five to ten minutes and restart with the calibration
+    passage.</li>
+    </ol>
+    <h3 id="recording-ready-gate">Recording-ready gate</h3>
+    <p>Before pressing Record:</p>
+    <ul class="task-list">
+    <li><label><input type="checkbox" />The approved
+    <code>voice_id</code> and <code>run_id</code> are written in the run
+    notes.</label></li>
+    <li><label><input type="checkbox" />The new run directory exists and
+    contains empty numbered stage folders.</label></li>
+    <li><label><input type="checkbox" />No prior run directory or
+    recording will be overwritten.</label></li>
+    <li><label><input type="checkbox" />Recorder, room, distance, gain,
+    format, and operator are recorded.</label></li>
+    <li><label><input type="checkbox" />The script version/checksum is
+    recorded.</label></li>
+    <li><label><input type="checkbox" />Consent and retention/deletion
+    decisions are recorded.</label></li>
+    <li><label><input type="checkbox" />At least ten minutes of free
+    recorder storage remains beyond the estimate.</label></li>
+    <li><label><input type="checkbox" />A brief level check shows clear
+    speech with no clipping.</label></li>
+    </ul>
+    <p>After scoped approval, create the empty run tree with separate
+    explicit <code>mkdir -p</code> commands for the paths listed in
+    Stage 0. Confirm every directory is under the intended
+    <code>voice_id/run_id</code> before recording; never use a wildcard
+    or an already populated run.</p>
+    <h3 id="immediate-acceptance-check">Immediate acceptance check</h3>
+    <p>Before recording more material, inspect the pilot:</p>
+    <ul class="task-list">
+    <li><label><input type="checkbox" />no clipping, dropouts, heavy
+    hiss, clicks, handling noise, or music;</label></li>
+    <li><label><input type="checkbox" />stable distance and tone from
+    opening to closing calibration;</label></li>
+    <li><label><input type="checkbox" />marker phrases are clear and
+    followed by silence;</label></li>
+    <li><label><input type="checkbox" />all speech is the
+    owner;</label></li>
+    <li><label><input type="checkbox" />the raw WAV checksum is
+    recorded; and</label></li>
+    <li><label><input type="checkbox" />the owner can listen comfortably
+    without obvious room echo.</label></li>
+    </ul>
+    <p>If the chain fails this pilot, fix the room/device procedure and
+    rerecord. Do not compensate by training longer on bad audio.</p>
+    <h2 id="stage-4--copy-checksum-and-inspect-recordings">Stage 4 —
+    Copy, checksum, and inspect recordings</h2>
+    <ol type="1">
+    <li><p>Copy the file from the recorder into
+    <code>01_recording/raw/</code>.</p></li>
+    <li><p>Never process directly from removable media.</p></li>
+    <li><p>Compute and store SHA-256:</p>
+    <div class="sourceCode" id="cb9"><pre
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">shasum</span> <span class="at">-a</span> 256 /absolute/path/to/session.wav</span></code></pre></div></li>
+    <li><p>Inspect the actual container and stream rather than trusting
+    the recorder label:</p>
+    <div class="sourceCode" id="cb10"><pre
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">afinfo</span> /absolute/path/to/session.wav</span></code></pre></div></li>
+    <li><p>Record duration, channels, sample rate, bit depth/format,
+    file size, checksum, recorder settings, room, device orientation,
+    and clipping observations.</p></li>
+    <li><p>Make a derived mono working copy only if the selected backend
+    requires it. Keep the original master unchanged.</p></li>
+    </ol>
+    <p>Reject the complete source file and investigate if it is corrupt,
+    truncated, unexpectedly compressed, or recorded with an unknown
+    automatic effect.</p>
+    <h2 id="stage-5--enroll-the-owner-and-reject-other-voices">Stage 5 —
+    Enroll the owner and reject other voices</h2>
+    <p>Enrollment identifies which anonymous diarized speaker is the
+    owner; it is not the training model.</p>
+    <ol type="1">
+    <li>Select 30–60 seconds of unquestionably clean owner-only audio
+    for the first enrollment, preferably 2–5 minutes across normal
+    neutral, warm, and energetic delivery for an all-day recorder.</li>
+    <li>Keep at least one clean owner clip held out from threshold
+    calibration.</li>
+    <li>Record enrollment checksums, recorder identity, room type, and
+    style.</li>
+    <li>Run voice activity detection to locate speech.</li>
+    <li>Run local diarization to mark anonymous speaker turns.</li>
+    <li>Run local speaker verification against the enrolled owner.</li>
+    <li>Produce immutable evidence for every candidate: source checksum,
+    start/end, speaker label, owner score, overlap flag,
+    backend/revision, threshold, and decision.</li>
+    </ol>
+    <p>Decision policy:</p>
+    <ul>
+    <li><code>accept</code>: verified owner and no overlap/non-owner
+    interval;</li>
+    <li><code>review</code>: uncertain owner score or quality problem,
+    never automatic training;</li>
+    <li><code>reject</code>: non-owner, any overlap, clipping, corrupted
+    audio, or unsafe path.</li>
+    </ul>
+    <p>If two voices overlap for even part of a candidate, reject that
+    candidate in full. Do not trim around the overlap and do not use
+    source separation to make a training clip.</p>
+    <h2 id="stage-6--transcribe-and-align-locally">Stage 6 — Transcribe
+    and align locally</h2>
+    <p>The local Whisper resources are documented in <a
+    href="../data/scripts/MLX_WHISPER.md"><code>data/scripts/MLX_WHISPER.md</code></a>.
+    Prefer an explicit local model path and record the runtime/model
+    revision. Never allow a transcription command to interpret a remote
+    model locator.</p>
+    <p>For scripted sessions:</p>
+    <ol type="1">
+    <li>Transcribe the master/accepted spans with local MLX
+    Whisper.</li>
+    <li>Match timestamps to known prompt IDs and spoken style
+    markers.</li>
+    <li>Remove marker speech from training candidates.</li>
+    <li>Split candidates at prompt boundaries while retaining source
+    offsets.</li>
+    <li>Compare recognized text with the known script.</li>
+    <li>Correct the transcript to exactly what was actually spoken; do
+    not silently change the audio to match intended text.</li>
+    </ol>
+    <p>For unscripted/all-day sessions:</p>
+    <ol type="1">
+    <li>Apply owner/overlap rejection before transcription.</li>
+    <li>Transcribe accepted owner-only candidates.</li>
+    <li>Segment into natural 2–12 second utterances.</li>
+    <li>Preserve the full rejected decision record.</li>
+    <li>Manually correct every transcript admitted to training.</li>
+    </ol>
+    <p>Human alignment gate:</p>
+    <ul class="task-list">
+    <li><label><input type="checkbox" />Listen to every uncertain
+    boundary and mismatch.</label></li>
+    <li><label><input type="checkbox" />Confirm no marker audio
+    remains.</label></li>
+    <li><label><input type="checkbox" />Confirm no second voice,
+    television, radio, or playback is present.</label></li>
+    <li><label><input type="checkbox" />Confirm transcript and
+    punctuation describe what was spoken.</label></li>
+    <li><label><input type="checkbox" />Record reviewer, UTC time,
+    source checksum, and decision.</label></li>
+    </ul>
+    <h2 id="stage-7--build-the-versioned-dataset">Stage 7 — Build the
+    versioned dataset</h2>
+    <p>Only accepted, reviewed, owner-only audio can become a dataset
+    row.</p>
+    <ol type="1">
+    <li>Store sentence-level WAV clips under style-specific
+    directories.</li>
+    <li>Store prompt text, style, source session, source offsets,
+    checksums, speaker evidence, transcript/runtime revisions, reviewer,
+    and review time.</li>
+    <li>Split by recording session—not random clips—so room/session
+    drift is visible.</li>
+    <li>Reserve approximately 90% train, 5% validation, and 5% untouched
+    final test.</li>
+    <li>Never tune thresholds or choose checkpoints using the final test
+    set.</li>
+    <li>Generate a dataset manifest and checksum it.</li>
+    <li>Listen to a random sample of ordinary accepted rows and every
+    low-margin row.</li>
+    </ol>
+    <p>Dataset release gate:</p>
+    <ul class="task-list">
+    <li><label><input type="checkbox" />zero mixed-speaker or overlap
+    candidates;</label></li>
+    <li><label><input type="checkbox" />zero missing transcripts or
+    checksums;</label></li>
+    <li><label><input type="checkbox" />no train/validation/test session
+    leakage;</label></li>
+    <li><label><input type="checkbox" />no clipping or obvious
+    processing artifacts;</label></li>
+    <li><label><input type="checkbox" />style distribution and prompt
+    coverage recorded;</label></li>
+    <li><label><input type="checkbox" />licenses/consent recorded;
+    and</label></li>
+    <li><label><input type="checkbox" />named human acceptance
+    recorded.</label></li>
+    </ul>
+    <h2 id="stage-8--establish-a-zero-shot-baseline">Stage 8 — Establish
+    a zero-shot baseline</h2>
+    <p>Before spending money on training, synthesize a fixed evaluation
+    set using the unmodified Base model plus a clean owner reference
+    clip. This is a baseline, not the trained deliverable.</p>
+    <p>Freeze 10–20 prompts covering neutral narration, questions,
+    numbers, technical terms, warm delivery, long sentences, and names.
+    Record prompt text/checksums, reference audio/checksum,
+    model/revision, settings, and output checksums. Listen and record
+    identity, intelligibility, pacing, pronunciation, noise, and
+    style.</p>
+    <p>The fine-tuned model must beat this baseline on the intended
+    narration use case without unacceptable regressions.</p>
+    <h2 id="stage-9--choose-and-pin-the-training-recipe">Stage 9 —
+    Choose and pin the training recipe</h2>
+    <p>Primary candidate: official Qwen3-TTS Base fine-tuning. Official
+    source: <a
+    href="https://github.com/QwenLM/Qwen3-TTS">https://github.com/QwenLM/Qwen3-TTS</a>.</p>
+    <p>Do not assume that a model advertised as fine-tunable works with
+    the current recipe. As of this procedure, public upstream issues
+    report 0.6B dimensional mismatch failures in the fine-tuning script.
+    Therefore:</p>
+    <ol type="1">
+    <li>Pin an exact repository commit and model revision.</li>
+    <li>Read the matching official fine-tuning files.</li>
+    <li>Run a tiny synthetic/no-private-data smoke test on the chosen
+    CUDA image.</li>
+    <li>If 0.6B fails at the pinned revision, do not improvise an
+    architecture patch for the paid run. Choose a verified upstream fix
+    or evaluate 1.7B with an appropriate GPU and new cost
+    preflight.</li>
+    <li>Record recipe ID, repository commit, model revision, tokenizer
+    revision, container image digest, CUDA/PyTorch versions, batch size,
+    accumulation, precision, learning rate, epochs, checkpoint cadence,
+    and seed.</li>
+    </ol>
+    <p>F5-TTS remains a separately labeled personal/noncommercial
+    comparison. Never silently substitute it for Qwen, and never mix
+    their artifacts or licenses.</p>
+    <h2 id="stage-10--approve-the-remote-gpu-job">Stage 10 — Approve the
+    remote GPU job</h2>
+    <p>Complete this worksheet:</p>
+    <pre class="text"><code>Provider:
+Region:
+GPU type and VRAM:
+Maximum hourly price:
+Maximum total cost:
+Maximum wall time:
+Concurrency: 1
+Dataset files approved for upload:
+Model files approved for download/cache:
+Checkpoint interval:
+Remote retention period:
+Deletion command/procedure:
+Credential source (never stored in repo):
+Stop conditions:</code></pre>
+    <p>Before submission:</p>
+    <ul class="task-list">
+    <li><label><input type="checkbox" />current price and quota
+    inspected;</label></li>
+    <li><label><input type="checkbox" />total worst-case cost
+    calculated;</label></li>
+    <li><label><input type="checkbox" />one-job concurrency
+    enforced;</label></li>
+    <li><label><input type="checkbox" />timeout and output-size cap
+    enforced;</label></li>
+    <li><label><input type="checkbox" />no automatic retry or
+    fallback;</label></li>
+    <li><label><input type="checkbox" />resumable checkpoint path
+    defined;</label></li>
+    <li><label><input type="checkbox" />only approved dataset files
+    included;</label></li>
+    <li><label><input type="checkbox" />secrets excluded from manifests
+    and logs;</label></li>
+    <li><label><input type="checkbox" />shutdown and deletion procedure
+    tested on an empty job; and</label></li>
+    <li><label><input type="checkbox" />exact immutable command plan
+    reviewed.</label></li>
+    </ul>
+    <p>Start one job. Stop immediately on authentication, quota,
+    rate-limit, repeated error, unexpected model download, cost-cap,
+    timeout, or checksum failure.</p>
+    <h2 id="stage-11--train-and-retrieve-learned-checkpoints">Stage 11 —
+    Train and retrieve learned checkpoints</h2>
+    <ol type="1">
+    <li>Upload only the approved dataset and required
+    configuration.</li>
+    <li>Verify remote checksums match local checksums before
+    training.</li>
+    <li>Execute the approved argument-vector command; never a
+    shell-constructed command assembled from untrusted text.</li>
+    <li>Save checkpoints at the approved cadence.</li>
+    <li>Preserve the last valid checkpoint on interruption.</li>
+    <li>Do not retry automatically.</li>
+    <li>Retrieve the training manifest, logs, configuration, and
+    candidate checkpoint.</li>
+    <li>Verify every downloaded checksum.</li>
+    <li>Shut down the GPU immediately after required artifacts are
+    retrieved.</li>
+    <li>Verify billing stopped and apply the approved remote deletion
+    policy.</li>
+    </ol>
+    <p>A valid training result must be a nonempty learned artifact such
+    as <code>fine_tuned_full</code> or <code>fine_tuned_adapter</code>;
+    <code>reference_clone</code> is not accepted.</p>
+    <h2 id="stage-12--evaluate-and-promote-the-source-checkpoint">Stage
+    12 — Evaluate and promote the source checkpoint</h2>
+    <ol type="1">
+    <li>Run the frozen acceptance prompts with the source/PyTorch
+    checkpoint.</li>
+    <li>Produce one checksum-bound preview for every prompt.</li>
+    <li>Record required objective metrics and thresholds.</li>
+    <li>A human listens to every preview.</li>
+    <li>Reject the checkpoint if any mandatory threshold fails, any
+    preview is missing, or provenance/checksums do not bind to the exact
+    training run.</li>
+    <li>Record named, time-zone-aware approval only after
+    listening.</li>
+    <li>Build immutable source-release metadata. This returns copy
+    instructions; it does not automatically copy, convert, publish, or
+    promote anything.</li>
+    </ol>
+    <h2 id="stage-13--convert-the-accepted-source-model-to-mlx">Stage 13
+    — Convert the accepted source model to MLX</h2>
+    <ol type="1">
+    <li>Pin the converter identity/revision and MLX-Audio version.</li>
+    <li>Bind the accepted source-release and checkpoint checksums.</li>
+    <li>Bind the exact tensor/data-type mapping, target format,
+    quantization, base model, tokenizer, and frozen parity-set
+    checksum.</li>
+    <li>Execute one approved conversion on the chosen host.</li>
+    <li>Compute checksums for every converted payload.</li>
+    <li>Produce a conversion manifest whose status remains
+    <code>pending</code>.</li>
+    </ol>
+    <p>Conversion success does not mean runtime acceptance. Never
+    register or publish the candidate at this stage.</p>
+    <h2 id="stage-14--run-source-versus-mlx-parity-review">Stage 14 —
+    Run source-versus-MLX parity review</h2>
+    <p>For every frozen prompt:</p>
+    <ol type="1">
+    <li>Generate source and MLX candidate WAV files with bound
+    settings.</li>
+    <li>Verify prompt, source WAV, candidate WAV, source release,
+    candidate, conversion, and parity-set checksums.</li>
+    <li>Record intelligibility error, alignment error, duration delta,
+    and real-time factor using frozen thresholds.</li>
+    <li>Keep the result <code>pending_listening</code> even if all
+    metrics pass.</li>
+    <li>A named reviewer listens to every source/candidate pair.</li>
+    <li>Reject incomplete listening, failed metrics, identity drift,
+    instability, artifacts, wrong pacing, or checksum mismatch.</li>
+    <li>Record a time-zone-aware accepted decision bound to the exact
+    report.</li>
+    </ol>
+    <h2 id="stage-15--publish-the-immutable-bundle">Stage 15 — Publish
+    the immutable bundle</h2>
+    <p>Publication requires an accepted parity report.</p>
+    <ol type="1">
+    <li>Verify complete source, training, dataset, converter, runtime,
+    evaluation, license, notice, and reference provenance.</li>
+    <li>Require one unambiguous default consented reference.</li>
+    <li>Refuse absolute paths, traversal, symlinks, missing/unlisted
+    payloads, case collisions, and checksum mismatches.</li>
+    <li>Copy into a new sibling staging directory.</li>
+    <li>Recheck every copied payload.</li>
+    <li>Write <code>bundle.json</code>.</li>
+    <li>Write sorted <code>checksums.sha256</code> covering every bundle
+    file except itself.</li>
+    <li>Verify the completed staging tree.</li>
+    <li>Atomically rename staging to a destination that does not already
+    exist.</li>
+    <li>On failure, remove staging and leave no destination.</li>
+    </ol>
+    <p>Reader must reject older/incomplete bundles without
+    <code>checksums.sha256</code>; rebuild them deliberately rather than
+    bypassing verification.</p>
+    <p>Inspect before promotion:</p>
+    <ul class="task-list">
+    <li><label><input type="checkbox" />bundle ID/version and learned
+    artifact kind;</label></li>
+    <li><label><input type="checkbox" />exact runtime
+    declaration;</label></li>
+    <li><label><input type="checkbox" />all payload
+    checksums;</label></li>
+    <li><label><input type="checkbox" />source/conversion/parity
+    approval checksums;</label></li>
+    <li><label><input type="checkbox" />licenses, notices, references,
+    and consent;</label></li>
+    <li><label><input type="checkbox" />no symlinks or unexpected files;
+    and</label></li>
+    <li><label><input type="checkbox" />no existing version was
+    overwritten.</label></li>
+    </ul>
+    <p>Updating <code>promoted.json</code> is a separate atomic,
+    human-approved action. Bundle publication never changes it
+    automatically.</p>
+    <h2 id="stage-16--verify-and-enable-voice-reader">Stage 16 — Verify
+    and enable Voice Reader</h2>
+    <p>Reader production currently registers only <code>null</code>,
+    which generates silence. The MLX runtime has a deliberate
+    verification flag set to false. Do not change either fact until the
+    real local listening gate passes.</p>
+    <ol type="1">
+    <li>Place the accepted immutable bundle in the approved local
+    versions directory.</li>
+    <li>Start Voice Reader with Voice Studio unavailable to prove
+    consumer independence.</li>
+    <li>Select the exact bundle and its manifest-declared runtime.</li>
+    <li>Run readiness. It must verify dependency, registration, bundle,
+    config, model payload, reference, and checksums before loading.</li>
+    <li>Enable the real runtime only in a versioned change after human
+    approval.</li>
+    <li>Enter a fixed test paragraph and generate to a new output
+    directory.</li>
+    <li>Verify WAV container, sample rate, frames, duration, checksum,
+    and that the samples are not all zero.</li>
+    <li>Play the file after playback approval.</li>
+    <li>Listen for owner identity, intelligibility, cadence,
+    pronunciation, expressiveness, noise, clicks, truncation,
+    repetition, and long-form drift.</li>
+    <li>Record bundle ID, runtime ID/version, model/config/reference
+    checksums, prompt checksum, device, generation settings, output
+    checksum, listener, time, and decision.</li>
+    </ol>
+    <p>Only after this gate may the MLX runtime be registered and placed
+    in Reader's human-verified allowlist.</p>
+    <h2 id="stage-17--final-verification-and-release-evidence">Stage 17
+    — Final verification and release evidence</h2>
+    <p>Run the repository gates:</p>
+    <div class="sourceCode" id="cb12"><pre
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /Users/appleadmin/Apps/VoiceCloneGPT</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span>src <span class="ex">.venv/bin/python</span> <span class="at">-m</span> pytest <span class="at">-q</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> /Users/appleadmin/.codex/skills/icm-check/scripts/icm_check.py .</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span>src <span class="ex">.venv/bin/python</span> scripts/build_apps.py <span class="at">--replace</span></span></code></pre></div>
+    <p>Final acceptance checklist:</p>
+    <ul class="task-list">
+    <li><label><input type="checkbox" />native arm64 environment and
+    pinned dependencies recorded;</label></li>
+    <li><label><input type="checkbox" />raw recording checksum and
+    consent recorded;</label></li>
+    <li><label><input type="checkbox" />owner enrollment calibrated with
+    held-out evidence;</label></li>
+    <li><label><input type="checkbox" />all mixed/overlap clips rejected
+    in full;</label></li>
+    <li><label><input type="checkbox" />exact reviewed transcripts and
+    session-exclusive dataset splits;</label></li>
+    <li><label><input type="checkbox" />learned checkpoint and training
+    lineage verified;</label></li>
+    <li><label><input type="checkbox" />source previews heard and source
+    release approved;</label></li>
+    <li><label><input type="checkbox" />MLX conversion checksummed and
+    parity-pending until review;</label></li>
+    <li><label><input type="checkbox" />every parity sample heard and
+    accepted;</label></li>
+    <li><label><input type="checkbox" />immutable complete bundle
+    published without overwrite;</label></li>
+    <li><label><input type="checkbox" />Reader loaded the exact
+    bundle/runtime independently;</label></li>
+    <li><label><input type="checkbox" />output WAV is structurally
+    valid, nonempty, and non-silent;</label></li>
+    <li><label><input type="checkbox" />the owner heard and accepted
+    identity and narration quality;</label></li>
+    <li><label><input type="checkbox" />GPU stopped, billing verified,
+    and remote data deleted per policy;</label></li>
+    <li><label><input type="checkbox" />both <code>.app</code> bundles
+    rebuilt and launched; and</label></li>
+    <li><label><input type="checkbox" />tests, ICM, and diff checks
+    pass.</label></li>
+    </ul>
+    <h2 id="recovery-and-rollback">Recovery and rollback</h2>
+    <ul>
+    <li>Recording failure: preserve the rejected source and reason;
+    create a new session rather than overwriting.</li>
+    <li>Transcript/alignment failure: correct review data or rerun only
+    the affected local stage; do not change the raw master.</li>
+    <li>Training interruption: resume only from the latest verified
+    checkpoint; never invent history or overwrite earlier
+    checkpoints.</li>
+    <li>Cost or provider failure: stop the job and billing; retain
+    verified local evidence; do not auto-resubmit.</li>
+    <li>Conversion/parity failure: keep the accepted source release;
+    reject the MLX candidate; do not register it.</li>
+    <li>Bundle publication failure: delete only the staging directory;
+    the absent destination and previous versions remain unchanged.</li>
+    <li>Reader failure: unregister only the rejected candidate version
+    and restore the prior promoted pointer; never modify the immutable
+    bundle in place.</li>
+    <li>Privacy withdrawal: follow the recorded deletion map for raw
+    files, derived clips, remote copies, checkpoints, conversions,
+    bundles, and generated audio.</li>
+    </ul>
+    <h2 id="troubleshooting-decisions">Troubleshooting decisions</h2>
+    <table>
+    <thead>
+    <tr>
+    <th>Symptom</th>
+    <th>Stop and check</th>
+    <th>Do not do</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+    <td>App opens with Intel Python</td>
+    <td>Launcher path and <code>platform.machine()</code></td>
+    <td>Install MLX into the Intel interpreter</td>
+    </tr>
+    <tr>
+    <td>MLX dependency missing</td>
+    <td>Project <code>.venv</code>, pinned install record</td>
+    <td>Reuse another app's virtual environment</td>
+    </tr>
+    <tr>
+    <td>Model attempts a Hub download</td>
+    <td>Runtime/config contains a remote locator</td>
+    <td>Allow an implicit download</td>
+    </tr>
+    <tr>
+    <td>0.6B fine-tune shape mismatch</td>
+    <td>Pinned upstream recipe/revision</td>
+    <td>Patch dimensions during the paid run</td>
+    </tr>
+    <tr>
+    <td>Other voice or overlap</td>
+    <td>Speaker evidence and source interval</td>
+    <td>Trim or separate and accept the remainder</td>
+    </tr>
+    <tr>
+    <td>Transcript differs from speech</td>
+    <td>Human transcript correction</td>
+    <td>Change text to what was intended</td>
+    </tr>
+    <tr>
+    <td>Generated WAV is silent</td>
+    <td>Runtime registration, samples, config, bundle</td>
+    <td>Call the null runtime a success</td>
+    </tr>
+    <tr>
+    <td>Voice sounds like owner but pacing is bad</td>
+    <td>Baseline/parity prompts and training epochs</td>
+    <td>Approve identity alone</td>
+    </tr>
+    <tr>
+    <td>GPU job loops or cost rises</td>
+    <td>Stop condition, timeout, provider shutdown</td>
+    <td>Retry automatically</td>
+    </tr>
+    <tr>
+    <td>Bundle checksum fails</td>
+    <td>Source payload and staging copy</td>
+    <td>Edit checksum files by hand</td>
+    </tr>
+    </tbody>
+    </table>
+    <a class="source-link" href="REAL_VOICE_ROUNDTRIP_PROCEDURE.md">Open the Markdown source ↗</a>
+  </main>
+  <footer class="site-footer">
+    <div class="site-footer-inner">
+      <span>Private, local-first, and explicit about what has been verified.</span>
+      <a href="index.html">Back to the project page →</a>
+    </div>
+  </footer>
+</body>
+</html>

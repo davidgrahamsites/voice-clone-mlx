@@ -57,7 +57,7 @@ intended usage. Voice Reader never approves or promotes models.
 
 ## Architectural decision
 
-VoiceCloneGPT is an umbrella over two independently deletable local apps:
+VoiceCloneMLX is an umbrella over two independently deletable local apps:
 
 ```text
 Voice Studio pipeline                         Voice Reader pipeline
@@ -174,7 +174,7 @@ One JSON document identifies source manifest schema/version and ordered
 utterances. Each utterance carries `utterance_id`, exact `text`, canonical
 `style`, source provenance, and session/block intent. Translation is the only
 place aware of the current Claude worktree's uncommitted bus/schema-v1 shape.
-Lifecycle modules never import `voiceclonegpt.bus.contracts`; a later adapter
+Lifecycle modules never import `voiceclonemlx.bus.contracts`; a later adapter
 may translate that envelope into this manifest.
 
 ### `RecordingSessionManifest` v1

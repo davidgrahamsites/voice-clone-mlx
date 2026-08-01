@@ -14,8 +14,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.synthesis import mlx_qwen_bundle
-from voiceclonegpt.synthesis.mlx_qwen_bundle import (
+from voiceclonemlx.synthesis import mlx_qwen_bundle
+from voiceclonemlx.synthesis.mlx_qwen_bundle import (
     BundleInitError,
     RUNTIME_ID,
     create_mlx_qwen_bundle,

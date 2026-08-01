@@ -8,8 +8,8 @@ path: a clear, actionable ImportError when `pypdf` is absent.
 from pathlib import Path
 import pytest
 
-from voiceclonegpt.ingestion import parsers
-from voiceclonegpt.ingestion.parsers import parse_source_file
+from voiceclonemlx.ingestion import parsers
+from voiceclonemlx.ingestion.parsers import parse_source_file
 
 
 class FakePage:

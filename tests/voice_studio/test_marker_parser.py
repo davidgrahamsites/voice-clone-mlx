@@ -2,7 +2,7 @@ import dataclasses
 
 import pytest
 
-from voiceclonegpt.alignment.marker_parser import (
+from voiceclonemlx.alignment.marker_parser import (
     StyleMarker,
     marker_phrase,
     parse_style_marker,

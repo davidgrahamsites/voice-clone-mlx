@@ -11,12 +11,12 @@ import json
 
 import pytest
 
-from voiceclonegpt.synthesis.null_runtime import NullRuntime
-from voiceclonegpt.synthesis.readiness import (
+from voiceclonemlx.synthesis.null_runtime import NullRuntime
+from voiceclonemlx.synthesis.readiness import (
     BLOCKER_RUNTIME_NOT_REGISTERED,
     check_runtime_readiness,
 )
-from voiceclonegpt.synthesis.runtime_registry import RuntimeRegistry
+from voiceclonemlx.synthesis.runtime_registry import RuntimeRegistry
 
 from conftest import RUNTIME_ID, check  # the one home for these
 

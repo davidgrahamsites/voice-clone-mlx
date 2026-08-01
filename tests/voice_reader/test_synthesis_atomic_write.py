@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from voiceclonegpt.reader_app import synthesis_session
-from voiceclonegpt.reader_app.synthesis_session import (
+from voiceclonemlx.reader_app import synthesis_session
+from voiceclonemlx.reader_app.synthesis_session import (
     ReaderSynthesisError,
     ReaderSynthesisSession,
 )

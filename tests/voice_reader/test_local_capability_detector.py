@@ -2,7 +2,7 @@
 import dataclasses
 from pathlib import Path
 import pytest
-from voiceclonegpt.shared.local_capability_detector import (
+from voiceclonemlx.shared.local_capability_detector import (
     LocalCapabilityError, LocalCapabilitySet, detect_capabilities,
 )
 

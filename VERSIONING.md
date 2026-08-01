@@ -1,6 +1,6 @@
 # Versioning and change-tree policy
 
-VoiceCloneGPT uses Semantic Versioning for software and an independent version
+VoiceCloneMLX uses Semantic Versioning for software and an independent version
 for each trained voice-model bundle. The app is a private utility, but strict
 versioning is required because recordings, manifests, model checkpoints, and
 the local data-bus protocol must remain reproducible.
