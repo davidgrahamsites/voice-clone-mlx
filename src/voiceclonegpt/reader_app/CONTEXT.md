@@ -36,6 +36,8 @@ window; opening a manifest lists its takes, marking which have audio.
 
 - `core.py` — `Take`, `load_manifest`, `is_safe_utterance_id`, `find_audio`,
   `Player`. No UI toolkit.
+- `synthesis_session.py` — `ReaderSynthesisSession`, `is_safe_output_name`.
+  Generates takes through the shared round-trip contract. No UI toolkit.
 - `ui.py` — `ReaderWindow` (Tk widgets only) plus `build_app()` / `main()`.
 - `__main__.py` — `python3 -m voiceclonegpt.reader_app`.
 
@@ -47,6 +49,85 @@ window; opening a manifest lists its takes, marking which have audio.
 - Bus integration attaches at `shared.integration_seam.set_event_sink`. This
   folder emits `manifest_loaded` and `playback_started`, and never imports
   `voiceclonegpt.bus` directly.
+- `ReaderSynthesisSession(..., round_trip=...)` — inject the round-trip
+  callable. The default lazily imports
+  `voiceclonegpt.shared.roundtrip.run_round_trip`.
+
+## Synthesis session
+
+`ReaderSynthesisSession(bundle_dir, runtime_id, runtime, output_dir)` turns
+text into a WAV take on disk. `synthesize(text, output_name) -> Path`.
+
+It owns **only** request validation, the call, and the write. Bundle
+verification and runtime dispatch belong to `shared.roundtrip`; model loading
+to `synthesis/`; choosing a bundle or runtime to the caller. It never selects,
+downloads, or converts anything.
+
+**`output_name` is a file name, never a path.** Absolute names, separators,
+`.`/`..`, and NUL are refused, and the resolved target must sit directly in the
+resolved output directory. A **pre-placed symlink at the target is refused
+rather than followed** — otherwise a link planted in the output directory would
+redirect the write anywhere on disk. Verified against a real symlink: the
+target file is left byte-identical.
+
+**Writes are atomic enough for local use, and the temp file is created
+exclusively.** Bytes go to a sibling created by `tempfile.mkstemp`
+(`O_CREAT | O_EXCL`, unguessable name), then `os.replace` moves it into place.
+A reader sees either the previous take or the new one, never a half-written
+file; the sibling keeps the replace on one filesystem. If the replace fails,
+the temp file is removed and the previous take survives. This is not a
+durability guarantee across power loss.
+
+The exclusive creation is load-bearing, not tidiness. An earlier version wrote
+to a predictable `<target>.partial` with `Path.write_bytes`, which **follows a
+symlink**: anyone able to create a file in the output directory could plant
+`a.wav.partial -> /somewhere/important` and have the next take overwrite it.
+`mkstemp` refuses to open anything that already exists, so a planted link is
+simply ignored.
+
+Note the side effect: `mkstemp` creates at mode `0600`, so takes are
+owner-readable only (previously `0644`). For personal voice recordings that is
+the better default, but it is a change — if a take needs to be shared, widen it
+deliberately rather than loosening this.
+
+### TDD evidence for the temp-file fix
+
+```bash
+# red — the planted symlink was followed
+$ python3 -m pytest tests/voice_reader/test_synthesis_session.py -q
+FAILED …::TestAtomicWrite::test_a_planted_partial_symlink_cannot_redirect_the_write
+FAILED …::TestAtomicWrite::test_the_temp_path_is_not_the_predictable_partial_name
+2 failed, 39 passed in 0.25s
+
+# green — after switching to tempfile.mkstemp
+$ python3 -m pytest tests/voice_reader/test_synthesis_session.py -q
+41 passed in 0.26s
+$ python3 -m pytest tests/voice_reader/ -q
+198 passed, 5 skipped in 0.49s
+$ python3 -m pytest -q
+488 passed, 9 skipped in 5.21s
+$ git diff --check
+(clean)
+```
+
+Verified outside the suite too: with `out/a.wav.partial` symlinked to a file
+holding `ORIGINAL`, the take is written correctly and the victim file is still
+`ORIGINAL`. The planted symlink itself is left in place — this module deletes
+only files it created.
+
+**One typed error.** Empty text, unsafe name, missing output directory,
+round-trip failure, non-`bytes` audio, and write failure all raise
+`ReaderSynthesisError`, with the provider exception chained on `__cause__`.
+Nothing is written when synthesis fails.
+
+### Blocked on a branch, and honest about it
+
+`voiceclonegpt.shared.roundtrip` **does not exist in this checkout** — it lives
+on `fix/v0.6.2-model-roundtrip-contract`, and `shared/` was outside the write
+scope for this change. So the default round trip imports it lazily and raises a
+clear `ImportError` naming the module. Every rule above is fully tested through
+an injected callable; **the wiring to the real contract is not yet exercised**
+and must be re-run once the branches meet.
 
 ## Boundaries
 
@@ -61,6 +142,7 @@ Two modules, split by responsibility:
 |---|---|---|
 | `tests/voice_reader/test_reader_manifest_security.py` | manifest loading, row schema, unsafe ids, traversal and symlink confinement | no — pure logic and temp files, runs in ~0.1 s |
 | `tests/voice_reader/test_reader_app.py` | `Player`, `ReaderWindow`, and the headless-display gate | only the window tests, and only under the opt-in below |
+| `tests/voice_reader/test_synthesis_session.py` | 41 tests: the round-trip call, input validation, output confinement, typed failures, atomic replacement, and the lazy round-trip seam | no |
 
 The security module deliberately imports no Tk and reads no environment
 variable: the rules that keep an untrusted manifest from reaching outside the
