@@ -17,6 +17,8 @@ not implemented yet.
 ## Files
 
 - `core.py` — `StudioSession`, all logic, imports no UI toolkit.
+- `audio_acceptance.py` — pure `validate_single_speaker_segments`
+  decision seam over diarization output; no audio, model, network, or UI.
 - `ui.py` — `StudioWindow` (Tk widgets only) plus `build_app()` / `main()`.
 - `__main__.py` — `python3 -m voiceclonegpt.studio_app`.
 
@@ -91,8 +93,32 @@ Current runs: **314 passed, 9 skipped** for the default full suite (the 9 are
 the real-window tests across both apps), and **323 passed, 0 skipped** with
 `VOICECLONEGPT_RUN_UI_TESTS=1`.
 
+## Audio acceptance gate
+
+validate_single_speaker_segments(segments, target_speaker=...) returns an
+immutable AcceptanceResult for diarization segments. It decodes no audio,
+runs no model, opens no file, and reaches no network. The diarizer that
+produced the segments and the caller that handles rejected clips remain
+separate modules.
+
+The rule is intentionally strict: one overlap rejects the entire clip, and
+any speaker label other than the target rejects the entire clip, even when
+that speaker is far away in time. Gaps are allowed as silence. Touching
+boundaries are adjacent, not overlapping. Malformed timing or speaker data
+gets only the malformed reason; an empty input gets empty. Invalid target
+speaker input raises ValueError because that is a caller error.
+
+The frozen result contains sorted, normalized segments only when accepted.
+Input is never mutated. The module is standard-library only; focused tests
+also enforce that it imports no audio, model, network, subprocess, or UI
+packages.
+
+TDD evidence:
+
+    test_audio_acceptance.py: 56 passed
+    full suite after integration: 630 passed, 10 skipped
+
 ## Not implemented
 
 Audio capture. `StudioSession.record_line` is a placeholder that returns a
 message; it records nothing.
-
