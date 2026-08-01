@@ -1,58 +1,23 @@
-"""Test what the Free Speech Mode planner refuses to do.
-
-Three guarantees, each of which would be expensive to discover in production:
-
-1. **No salvage.** A rejected candidate is rejected whole. There is no
-   parameter, no code path, and no result field that trims a clip down to a
-   clean prefix or suffix — the audio the gate refused is never partly kept.
-2. **Policy reuse.** Acceptance is `overlap_gate.decide_clip` and plan
-   construction is `whisper_plan.build_whisper_plan`. A second copy of either
-   rule would drift from the reviewed one.
-3. **Inertness.** Planning describes work; it never performs it. No process,
-   no network, no model import.
-"""
+"""Free Speech planner no-salvage and policy-reuse tests."""
 
 import ast
 import inspect
-from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
 
+from free_speech_plan_test_support import candidate, local_assets
 from voiceclonegpt.alignment import free_speech_plan
 from voiceclonegpt.alignment.free_speech_plan import (
     MAX_CANDIDATES,
-    FreeSpeechCandidate,
     FreeSpeechPlanError,
     PlannedCandidate,
     plan_free_speech,
 )
 from voiceclonegpt.alignment.overlap_gate import ClipDecision, SpeakerTurn
-from voiceclonegpt.alignment.whisper_plan import WhisperPlanError
 
-SOURCE_PATH = Path(free_speech_plan.__file__)
-SOURCE = SOURCE_PATH.read_text(encoding="utf-8")
+SOURCE = Path(free_speech_plan.__file__).read_text(encoding="utf-8")
 TREE = ast.parse(SOURCE)
-
-
-@pytest.fixture
-def local_assets(tmp_path):
-    audio = tmp_path / "session.wav"
-    audio.write_bytes(b"RIFF")
-    model = tmp_path / "model"
-    model.mkdir()
-    output = tmp_path / "out"
-    output.mkdir()
-    return {"audio_path": audio, "model_path": model, "output_dir": output}
-
-
-def candidate(start=0.0, end=5.0, turns=None, audio_path="audio.wav"):
-    return FreeSpeechCandidate(
-        clip_start_s=start,
-        clip_end_s=end,
-        audio_path=str(audio_path),
-        turns=tuple(turns if turns is not None else [SpeakerTurn(0.2, 4.8, "owner")]),
-    )
 
 
 # --- no salvage ------------------------------------------------------------
@@ -105,7 +70,6 @@ def test_a_partly_clean_candidate_is_rejected_whole(local_assets):
         model_path=local_assets["model_path"],
         output_dir=local_assets["output_dir"],
     )
-
     assert results[0].whisper_plan is None
     assert (results[0].clip_start_s, results[0].clip_end_s) == (0.0, 8.0)
 
@@ -265,244 +229,6 @@ def test_the_cap_is_enforced_before_any_gate_call(monkeypatch, local_assets):
     with pytest.raises(FreeSpeechPlanError):
         plan_free_speech(
             [candidate(audio_path=local_assets["audio_path"])] * (MAX_CANDIDATES + 1),
-            target_speaker="owner",
-            model_path=local_assets["model_path"],
-            output_dir=local_assets["output_dir"],
-        )
-
-
-# --- inertness -------------------------------------------------------------
-
-
-FORBIDDEN_IMPORTS = {
-    "subprocess",
-    "os.system",
-    "socket",
-    "http",
-    "urllib",
-    "requests",
-    "httpx",
-    "mlx",
-    "mlx_whisper",
-    "whisper",
-    "torch",
-    "numpy",
-    "soundfile",
-    "librosa",
-    "asyncio",
-    "multiprocessing",
-    "shutil",
-}
-
-
-def imported_names():
-    names = set()
-    for node in ast.walk(TREE):
-        if isinstance(node, ast.Import):
-            names.update(alias.name for alias in node.names)
-        elif isinstance(node, ast.ImportFrom):
-            if node.module:
-                names.add(node.module)
-    return names
-
-
-def test_no_process_network_or_model_imports():
-    for name in imported_names():
-        root = name.split(".")[0]
-        assert root not in FORBIDDEN_IMPORTS, name
-
-
-def test_no_forbidden_call_names_appear():
-    called = {
-        node.func.id
-        for node in ast.walk(TREE)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-    } | {
-        node.func.attr
-        for node in ast.walk(TREE)
-        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
-    }
-
-    for forbidden in (
-        "run",
-        "call",
-        "check_output",
-        "Popen",
-        "system",
-        "spawn",
-        "urlopen",
-        "eval",
-        "exec",
-        "compile",
-        "open",
-        "write_text",
-        "write_bytes",
-        "mkdir",
-        "unlink",
-    ):
-        assert forbidden not in called
-
-
-def test_planning_writes_no_file(local_assets):
-    output = local_assets["output_dir"]
-    before = sorted(p.name for p in output.iterdir())
-
-    plan_free_speech(
-        [candidate(audio_path=local_assets["audio_path"])],
-        target_speaker="owner",
-        model_path=local_assets["model_path"],
-        output_dir=output,
-    )
-
-    assert sorted(p.name for p in output.iterdir()) == before
-
-
-def test_the_planner_returns_an_argv_it_does_not_run(local_assets):
-    results = plan_free_speech(
-        [candidate(audio_path=local_assets["audio_path"])],
-        target_speaker="owner",
-        model_path=local_assets["model_path"],
-        output_dir=local_assets["output_dir"],
-    )
-
-    argv = results[0].whisper_plan.argv
-    assert isinstance(argv, tuple)
-    assert "-m" in argv
-
-
-# --- path validation is not skippable by being rejected --------------------
-#
-# A candidate the gate refuses still had its path recorded by whatever
-# produced it. A remote path there is a bug in the caller, and discovering it
-# only for the candidates that happened to be accepted would mean the error
-# surfaces or hides depending on who was talking.
-
-
-def test_a_remote_path_on_an_accepted_candidate_is_refused(local_assets):
-    with pytest.raises(WhisperPlanError):
-        plan_free_speech(
-            [candidate(audio_path="http://example.com/session.wav")],
-            target_speaker="owner",
-            model_path=local_assets["model_path"],
-            output_dir=local_assets["output_dir"],
-        )
-
-
-@pytest.mark.parametrize(
-    "remote",
-    ["http://example.com/session.wav", "//server/share/session.wav"],
-)
-def test_a_remote_path_on_a_rejected_candidate_is_refused(local_assets, remote):
-    """The candidate below would be rejected. The path still has to be real."""
-    with pytest.raises(WhisperPlanError):
-        plan_free_speech(
-            [
-                candidate(
-                    audio_path=remote,
-                    turns=[SpeakerTurn(0.2, 4.8, "guest")],
-                )
-            ],
-            target_speaker="owner",
-            model_path=local_assets["model_path"],
-            output_dir=local_assets["output_dir"],
-        )
-
-
-def test_a_missing_path_on_a_rejected_candidate_is_refused(local_assets, tmp_path):
-    with pytest.raises(WhisperPlanError):
-        plan_free_speech(
-            [
-                candidate(
-                    audio_path=tmp_path / "absent.wav",
-                    turns=[SpeakerTurn(0.2, 4.8, "guest")],
-                )
-            ],
-            target_speaker="owner",
-            model_path=local_assets["model_path"],
-            output_dir=local_assets["output_dir"],
-        )
-
-
-def test_paths_are_validated_before_any_gate_call(monkeypatch, local_assets):
-    monkeypatch.setattr(
-        free_speech_plan,
-        "decide_clip",
-        lambda **_: pytest.fail("paths must be validated first"),
-    )
-
-    with pytest.raises(WhisperPlanError):
-        plan_free_speech(
-            [candidate(audio_path="http://example.com/session.wav")],
-            target_speaker="owner",
-            model_path=local_assets["model_path"],
-            output_dir=local_assets["output_dir"],
-        )
-
-
-def test_a_later_candidates_bad_path_refuses_the_whole_batch(local_assets):
-    """Validation is a pass over the batch, not a per-row surprise."""
-    with pytest.raises(WhisperPlanError):
-        plan_free_speech(
-            [
-                candidate(audio_path=local_assets["audio_path"]),
-                candidate(audio_path="http://example.com/session.wav"),
-            ],
-            target_speaker="owner",
-            model_path=local_assets["model_path"],
-            output_dir=local_assets["output_dir"],
-        )
-
-
-def test_path_validation_defers_to_resolve_local_audio(monkeypatch, local_assets):
-    seen = []
-
-    def fake(value):
-        seen.append(value)
-        return Path(local_assets["audio_path"]).resolve()
-
-    monkeypatch.setattr(free_speech_plan, "resolve_local_audio", fake)
-
-    plan_free_speech(
-        [
-            candidate(audio_path="anything-at-all.wav"),
-            candidate(
-                audio_path="also-anything.wav",
-                turns=[SpeakerTurn(0.2, 4.8, "guest")],
-            ),
-        ],
-        target_speaker="owner",
-        model_path=local_assets["model_path"],
-        output_dir=local_assets["output_dir"],
-    )
-
-    assert seen == ["anything-at-all.wav", "also-anything.wav"]
-
-
-# --- the cap is enforced before the batch is materialized ------------------
-
-
-class OversizedSequence(Sequence):
-    """Reports a length over the cap and refuses to be read.
-
-    A planner that measured `len(tuple(candidates))` would have to consume the
-    sequence first. For a generator-backed or lazily-loaded diarizer result
-    that is exactly the work the cap exists to avoid.
-    """
-
-    def __len__(self):
-        return MAX_CANDIDATES + 1
-
-    def __getitem__(self, index):
-        raise AssertionError("an oversized batch must not be read")
-
-    def __iter__(self):
-        raise AssertionError("an oversized batch must not be iterated")
-
-
-def test_an_oversized_sequence_is_never_iterated(local_assets):
-    with pytest.raises(FreeSpeechPlanError):
-        plan_free_speech(
-            OversizedSequence(),
             target_speaker="owner",
             model_path=local_assets["model_path"],
             output_dir=local_assets["output_dir"],
