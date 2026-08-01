@@ -128,6 +128,11 @@ class TestInfoPlist:
         assert plist["CFBundleIdentifier"] == APP_SPECS["voice_studio"].bundle_id
         assert plist["CFBundlePackageType"] == "APPL"
 
+    def test_studio_plist_explains_microphone_permission(self, output_dir, repo_root):
+        plist = self._plist(build_app_bundle("voice_studio", output_dir, repo_root))
+
+        assert "microphone" in plist["NSMicrophoneUsageDescription"].lower()
+
     def test_plist_carries_the_version(self, output_dir, repo_root):
         plist = self._plist(
             build_app_bundle("voice_studio", output_dir, repo_root, version="1.2.3")
@@ -280,4 +285,3 @@ class TestSeamIsBounded:
 
         for banned in ("os.system", "Popen", "check_call", "git "):
             assert banned not in source
-

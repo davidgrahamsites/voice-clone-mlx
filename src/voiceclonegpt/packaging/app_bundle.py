@@ -206,6 +206,10 @@ def build_info_plist(spec: AppSpec, version: str) -> bytes:
         "LSMinimumSystemVersion": "11.0",
         "NSHighResolutionCapable": True,
     }
+    if spec.app_id == "voice_studio":
+        plist["NSMicrophoneUsageDescription"] = (
+            "Voice Studio uses the microphone to record your voice locally when you choose Record."
+        )
     return plistlib.dumps(plist, sort_keys=True)
 
 
@@ -280,4 +284,3 @@ def build_app_bundle(
     launcher.chmod(LAUNCHER_MODE | stat.S_IRUSR)
 
     return bundle_dir
-
