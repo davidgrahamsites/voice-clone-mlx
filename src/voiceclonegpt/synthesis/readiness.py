@@ -101,14 +101,21 @@ def _dependency_present(name: str) -> bool:
         return False
 
 
-def _registered_runtimes() -> Tuple[str, ...]:
+def _registered_runtimes(registry=None) -> Tuple[str, ...]:
     """The runtime ids a caller could actually select.
 
     The detached checkout exposes a shared ``default_registry().available``;
     the main checkout exposes ``RuntimeRegistry.ids`` and no shared instance.
     Ask whichever API exists rather than duplicating registration here.
+
+    Args:
+        registry: A registry a composition root already built. When ``None``,
+            fall back to whatever this checkout exposes process-wide.
     """
-    registry = default_registry() if default_registry is not None else RuntimeRegistry()
+    if registry is None:
+        registry = (
+            default_registry() if default_registry is not None else RuntimeRegistry()
+        )
     lister = getattr(registry, "available", None) or getattr(registry, "ids")
     return tuple(lister())
 
@@ -140,17 +147,24 @@ def _classify_config_error(exc: RuntimeConfigError) -> str:
     return BLOCKER_CONFIG_INVALID
 
 
-def check_runtime_readiness(bundle_dir, *, runtime_id: str) -> ReadinessReport:
+def check_runtime_readiness(
+    bundle_dir, *, runtime_id: str, registry=None
+) -> ReadinessReport:
     """Report everything preventing a real round trip for one bundle.
 
     Args:
         bundle_dir: The bundle to check. Never modified.
         runtime_id: The runtime variant a caller would select.
+        registry: The registry a composition root built, if the caller has one.
+            Omitted, the check consults whatever this checkout exposes
+            process-wide — which on a branch with no shared registry is empty,
+            so every id reports `runtime_not_registered`.
 
     There is deliberately **no** `probe` parameter. Config validity is
     established by reaching `_probe`, which always raises — so a readiness
     check can never be turned into a model load by passing a loader that
-    returns one.
+    returns one. A supplied `registry` is only ever asked for its ids; it
+    cannot reach the probe or otherwise weaken that guarantee.
 
     Returns:
         A `ReadinessReport`. Blockers are sorted and unique, and every code is
@@ -166,7 +180,10 @@ def check_runtime_readiness(bundle_dir, *, runtime_id: str) -> ReadinessReport:
 
     # 2. Could a caller even select this runtime?
     checked.append("registration")
-    if runtime_id not in _registered_runtimes():
+    # Called with no argument when nothing was injected, so a test that
+    # substitutes a zero-argument lister still sees the call it expects.
+    ids = _registered_runtimes() if registry is None else _registered_runtimes(registry)
+    if runtime_id not in ids:
         blockers.add(BLOCKER_RUNTIME_NOT_REGISTERED)
 
     bundle_dir = Path(bundle_dir)

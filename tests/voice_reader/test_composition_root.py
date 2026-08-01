@@ -13,6 +13,10 @@ from pathlib import Path
 import pytest
 
 from voiceclonegpt.reader_app.composition import build_runtime_registry
+from voiceclonegpt.synthesis.readiness import (
+    BLOCKER_RUNTIME_NOT_REGISTERED,
+    check_runtime_readiness,
+)
 from voiceclonegpt.synthesis.runtime_registry import (
     RuntimeRegistrationError,
     RuntimeRegistry,
@@ -148,3 +152,19 @@ class TestCompositionRootIsDetachable:
         assert "tts" not in imports
         assert "mlx" not in imports
         assert "tkinter" not in imports
+
+
+class TestReadinessAcceptsTheBuiltRegistry:
+    """End to end: what the root wires up is what readiness reports on."""
+
+    def test_registration_check_passes_for_the_wired_runtime(self, tmp_path):
+        bundle = tmp_path / "alex@0.1.0"
+        bundle.mkdir()
+        (bundle / "bundle.json").write_text("{}", encoding="utf-8")
+
+        report = check_runtime_readiness(
+            bundle, runtime_id="null", registry=build_runtime_registry()
+        )
+
+        assert "registration" in report.checked
+        assert BLOCKER_RUNTIME_NOT_REGISTERED not in report.blockers

@@ -354,9 +354,15 @@ conditioning beyond the single reference clip, and any F5 comparison backend.
 
 ## Runtime readiness
 
-`readiness.check_runtime_readiness(bundle_dir, *, runtime_id) ->
+`readiness.check_runtime_readiness(bundle_dir, *, runtime_id, registry=None) ->
 ReadinessReport` answers one question: **could a real model round trip run
 here, and if not, what exactly is missing?**
+
+A caller that built its own registry passes it as `registry=` and the
+registration check asks that object rather than the process-wide one; omitting
+it preserves the previous behavior exactly. The registry is only ever asked for
+its ids, so it cannot reach `_probe` or weaken the promise that no model is
+ever loaded.
 
 It installs nothing, downloads nothing, imports no backend, loads no model, and
 writes no file. It reports on the world; it does not change it.
@@ -453,37 +459,39 @@ ERROR — ModuleNotFoundError: No module named
         'voiceclonegpt.synthesis.readiness'
 
 # green
-# the tests live in two modules, so both must be named
+# the tests live in three modules, so all three must be named
 $ python3 -m pytest tests/voice_reader/test_readiness.py \
-      tests/voice_reader/test_readiness_probe.py -q
-40 passed
+      tests/voice_reader/test_readiness_probe.py \
+      tests/voice_reader/test_readiness_registry.py -q
+45 passed
 $ git diff --check
 (clean)
 ```
 
-Running only `test_readiness.py` reports **36** and silently skips the probe
-protection; the figure for this seam is **36 + 4 = 40** (was 35 + 4 = 39 before
-the registry-compatibility test was added).
+Running only `test_readiness.py` reports **36** and silently skips both the
+probe protection and the injection tests; the figure for this seam is
+**36 + 4 + 5 = 45**.
 
 | Test module | Covers | Tests |
 |---|---|---|
 | `tests/voice_reader/test_readiness.py` | the all-clear path, every blocker in isolation and in combination, the skipped-check case, the report contract, purity, and that the registry is asked through whichever API the checkout ships | 36 |
 | `tests/voice_reader/test_readiness_probe.py` | that the probe is private, cannot be overridden, and always raises — the guarantee that no model is ever loaded | 4 |
+| `tests/voice_reader/test_readiness_registry.py` | that an injected registry is consulted, an empty one still blocks, omitting it preserves current behavior, and either lister API answers | 5 |
 
 | Run | Result |
 |---|---|
-| suite **without** this seam (baseline) | `1402 passed, 11 skipped` |
-| suite **with** this seam | `1442 passed, 11 skipped` |
+| suite **without** this seam (baseline) | `1535 passed, 9 skipped` |
+| suite **with** this seam | `1580 passed, 9 skipped` |
 
-Worktree totals only; the delta (+40) is the figure that travels — both totals
-above were measured at seam-landing time and will not match a later checkout.
-The baseline must ignore **both** modules:
+Both totals re-measured on this checkout 2026-08-01; the delta (+45) is the
+figure that travels. The baseline must ignore **all three** modules:
 
 ```bash
 $ python3 -m pytest \
     --ignore=tests/voice_reader/test_readiness.py \
-    --ignore=tests/voice_reader/test_readiness_probe.py -q
-1402 passed, 11 skipped
+    --ignore=tests/voice_reader/test_readiness_probe.py \
+    --ignore=tests/voice_reader/test_readiness_registry.py -q
+1535 passed, 9 skipped
 ```
 
 `tests/voice_reader/test_readiness.py` (36) — the all-clear path, each blocker
@@ -491,7 +499,9 @@ in isolation, several at once, unknown runtime reported rather than raised,
 sorted unique blockers from the fixed vocabulary, the skipped-check case, the
 frozen report, purity including no writes, no network, and no import of the
 backend, and registry compatibility. `tests/voice_reader/test_readiness_probe.py`
-(4) — the probe protection.
+(4) — the probe protection. `tests/voice_reader/test_readiness_registry.py`
+(5) — registry injection, split out to keep `test_readiness.py` readable in one
+sitting.
 
 **Version impact: MINOR — v0.3.0 capability.** Branch policy would use
 `feature/v0.3.0-runtime-readiness`; the current freeze keeps this on the
