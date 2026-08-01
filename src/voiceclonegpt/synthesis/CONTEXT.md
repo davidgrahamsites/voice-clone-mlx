@@ -143,6 +143,51 @@ Model output is untrusted, so reading it is bounded and wrapped:
   `ValueError` and `int(round(inf))` raises `OverflowError`, and neither should
   reach a caller as a raw exception.
 
+## Local MLX Qwen bundle initializer
+
+mlx_qwen_bundle.create_mlx_qwen_bundle(...) writes a manifest around a
+Qwen3-TTS model that the caller already placed on disk. It never downloads,
+copies, moves, converts, or loads a model. It writes only:
+
+    <bundle>/bundle.json
+    <bundle>/runtimes/mlx_qwen/config.json
+
+The model directory and reference WAV must already be inside
+<bundle>/runtimes/mlx_qwen/. The runtime confines paths to the config file's
+directory, so accepting an asset elsewhere in the bundle would create a bundle
+that validates but cannot load. Escaping paths and remote-looking locators are
+refused before any write.
+
+The manifest uses schema 1.0.0, runtime id mlx_qwen, backend qwen3-tts-mlx, an
+allowed artifact kind, and a SHA-256 checksum over the exact config bytes.
+Both destination files are checked before validation or writing; existing
+files and symlinks are never overwritten. JSON is written through an
+exclusively-created temporary sibling and os.replace, so a partial file cannot
+be mistaken for a complete bundle. If the manifest write fails after the
+config is written, the inert config is deliberately retained; the guard
+requires a human to remove it before retrying.
+
+Every path argument is coerced inside a typed-error guard. Invalid paths,
+missing assets, traversal, outside symlinks, empty identity/text fields, bad
+sample rates, and unsupported artifact kinds raise BundleInitError. The module
+is detachable: it imports only the standard library and removing it does not
+affect synthesis or the apps.
+
+### TDD and review evidence
+
+The initial red test was a missing-module error. The green split suites now
+cover manifest shape, checksums, runtime-config contents, path confinement,
+typed input refusal, no-overwrite behavior, atomic writes, and import
+detachment:
+
+    test_mlx_qwen_bundle_manifest.py: 16 passed, 1 documented skip
+    test_mlx_qwen_bundle_safety.py: 70 passed
+    full suite: 574 passed, 10 skipped
+
+The documented skip is the shared-reader compatibility test when that module
+is absent from a detached checkout; it becomes a real check when the shared
+bundle reader is present.
+
 ### Not registered yet
 
 `runtime_registry` still lists only `null`. Registering this adapter is a
