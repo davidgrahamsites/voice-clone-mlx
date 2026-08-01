@@ -127,3 +127,25 @@ TDD evidence:
     baseline before this seam: 820 passed, 9 skipped
     after this seam: 882 passed, 9 skipped
     after this seam with UI opt-in: 891 passed
+
+## Whisper JSON transcript parser
+
+`whisper_json.py` is the pure handoff from a local MLX Whisper runner to
+alignment. `parse_whisper_json(payload)` accepts a mapping, JSON text, or
+UTF-8 bytes containing a `segments` list. Mapping implementations are
+accepted through the standard mapping protocol; ordinary objects that merely
+have a `segments` attribute are not payloads.
+
+Each segment must have finite, non-negative numeric `start` and `end`
+values with positive duration and non-blank string text. Text is preserved
+exactly, including surrounding and repeated whitespace. Output is sorted into
+an immutable `Transcript`; overlaps and duplicates are rejected, while gaps,
+touching boundaries, and an empty list are valid. The caller's mapping and
+list are never mutated. The seam performs no file, process, model, network, or
+audio work.
+
+TDD evidence (measured after integration):
+
+    focused suite: 94 passed
+    full suite: 976 passed, 9 skipped
+    UI opt-in suite: 985 passed
