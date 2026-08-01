@@ -86,6 +86,56 @@ public interface with local in-memory provider fakes. They prove admission,
 checksum binding, one-attempt failure handling, resume history, learned-artifact
 validation, and import isolation; they make no provider or network calls.
 
+## Runtime-conversion coordinator
+
+`runtime_conversion.coordinate_mlx_conversion(request, converter)` advances one
+human-accepted source-model release to one **pending** MLX runtime candidate.
+It is a provider-neutral metadata seam: it never reads or writes model files,
+loads a runtime, registers a runtime, runs a subprocess, downloads anything,
+or publishes a bundle.
+
+### Inputs
+
+- `ConversionRequest`: accepted source-release identity and checksum, source
+  checkpoint path/checksum, provider identity/revision, converter
+  identity/revision/status, target format, MLX runtime version, quantization,
+  tensor/dtype mapping, and a frozen parity-set checksum.
+- `RuntimeVariantConverter`: one explicitly injected leaf with
+  `convert(request) -> ConvertedPayload`. The leaf performs conversion and
+  calculates the candidate's SHA-256 checksum.
+
+### Process
+
+The coordinator validates every identity and checksum before calling the leaf.
+The source release must be `accepted`; its checkpoint checksum must equal its
+immutable release checksum; converter status is exactly `official` or
+`community`; and the parity-set checksum must be present. It calls the leaf
+exactly once, with no retry. The returned payload must bind back to the same
+source release and repeat the requested converter provenance and conversion
+mapping. A successful `ConversionManifest` always says `parity_status:
+pending`: conversion never makes a candidate selectable or approves parity.
+
+### Outputs
+
+- A `ConversionManifest` that binds the immutable source release to the
+  checksummed candidate and the frozen parity set.
+
+### Human check
+
+Before runtime evaluation, compare the source-release and candidate checksums
+in the manifest with the reviewed artifacts, then run the frozen parity set and
+obtain a separate human approval. Do not register the runtime or publish a
+bundle from this seam.
+
+### Version and tests
+
+MINOR (`v0.8.0`): additive Studio-only coordination capability; no existing
+bundle or Reader seam changes and no migration is required.
+`tests/voice_studio/test_runtime_conversion.py` uses only local in-memory fake
+converters. It performs no conversion, filesystem payload work, subprocess,
+model/runtime import, network, GPU, registry change, publication, retry, or
+automatic parity approval.
+
 ## Bounded CUDA command provider
 
 `cuda_command_provider.CudaCommandTrainingProvider` is the independently
