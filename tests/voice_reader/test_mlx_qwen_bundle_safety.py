@@ -103,12 +103,24 @@ class TestAssetConfinement:
         with pytest.raises(BundleInitError, match="model_dir"):
             build(staged, model_dir=link)
 
-    def test_symlink_inside_the_variant_is_allowed(self, staged):
+    def test_symlink_inside_the_variant_is_rejected(self, staged):
         real = staged / "runtimes" / RUNTIME_ID / "model"
         link = staged / "runtimes" / RUNTIME_ID / "linked"
         link.symlink_to(real)
 
-        assert build(staged, model_dir=link)
+        with pytest.raises(BundleInitError, match="symlink"):
+            build(staged, model_dir=link)
+
+    def test_case_colliding_payload_paths_are_rejected(self, staged):
+        model = staged / "runtimes" / RUNTIME_ID / "model"
+        (model / "weights-ß.bin").write_bytes(b"one")
+        (model / "weights-ss.bin").write_bytes(b"two")
+        names = {path.name for path in model.iterdir()}
+        if not {"weights-ß.bin", "weights-ss.bin"}.issubset(names):
+            pytest.skip("this filesystem prevents case-folding collisions")
+
+        with pytest.raises(BundleInitError, match="collide by case"):
+            build(staged)
 
     @pytest.mark.parametrize(
         "value",
@@ -212,6 +224,16 @@ class TestNoOverwrite:
 
         assert config.read_text() == '{"ref_text": "hand tuned by a human"}'
 
+    def test_refuses_when_the_checksum_manifest_exists(self, staged):
+        checksums = staged / "checksums.sha256"
+        checksums.write_text("hand reviewed\n", encoding="utf-8")
+
+        with pytest.raises(BundleInitError, match="already"):
+            build(staged)
+
+        assert checksums.read_text(encoding="utf-8") == "hand reviewed\n"
+        assert not (staged / "bundle.json").exists()
+
     def test_refuses_the_config_before_writing_the_manifest(self, staged):
         """The refusal happens first, so no half-initialized bundle appears."""
         (staged / "runtimes" / RUNTIME_ID / "config.json").write_text("{}")
@@ -276,4 +298,3 @@ class TestModuleIsDetachable:
         source = Path(mlx_qwen_bundle.__file__).read_text(encoding="utf-8")
 
         assert "load_model" not in source
-
