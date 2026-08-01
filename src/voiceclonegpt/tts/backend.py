@@ -186,4 +186,3 @@ def measure_wav_seconds(source) -> float:
         raise SynthesisError("WAV declares no frame rate")
 
     return frames / frame_rate
-

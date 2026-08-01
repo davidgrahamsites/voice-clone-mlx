@@ -129,4 +129,3 @@ Nothing outside `tmp_path`. No run artifact, no fixture file, no cache.
    above and should be removed, not fixed.
 4. Ask what a green run actually licenses you to say. The honest answer stays
    "the seam is wired correctly", never "voice cloning works".
-

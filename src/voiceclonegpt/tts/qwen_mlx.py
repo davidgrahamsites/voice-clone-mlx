@@ -210,4 +210,3 @@ class QwenMlxBackend:
                 f"Build a backend from the config naming the clip you want, or "
                 f"pass None."
             )
-

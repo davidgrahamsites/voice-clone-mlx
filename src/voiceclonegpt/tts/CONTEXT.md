@@ -233,4 +233,3 @@ the delta is the invariant, the totals are not.
 4. Grep this folder for `SAMPLE_RATE`, `MAX_SECONDS`, or `samples_to_wav`. The
    only hits should be prose. A real assignment means a rule grew a second
    home — the exact defect that broke this module once already.
-

@@ -354,4 +354,3 @@ class TestRefusals:
             make_backend(runtime, config_path).synthesize("Hi.", None, out_path)
 
         assert not out_path.exists()
-

@@ -8,4 +8,3 @@ Nothing else in the package imports this — like `bus`, it is independently
 deletable, and a test asserts it stays that way. It manages no models, owns
 no queue, and knows nothing about the data bus or either app.
 """
-

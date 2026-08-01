@@ -208,4 +208,3 @@ class TestNoGodObject:
         )
 
         assert result.duration_s == pytest.approx(1.0)
-
