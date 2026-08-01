@@ -13,6 +13,31 @@ from . import APP_NAME
 from .core import StudioSession
 
 
+def build_default_session(recording_dir=None, capture_factory=None) -> StudioSession:
+    """Compose the optional local microphone without opening an input device.
+
+    The provider import stays here so removing the macOS adapter leaves the
+    Studio shell runnable with its existing unavailable-recording behavior.
+    """
+    if capture_factory is None:
+        try:
+            from voiceclonegpt.recording.macos_microphone import (
+                MacOSMicrophoneCapture,
+            )
+        except ImportError:
+            return StudioSession()
+        capture_factory = MacOSMicrophoneCapture
+
+    if recording_dir is None:
+        home = Path.home()
+        music = home / "Music"
+        recording_dir = music if music.is_dir() else home
+    return StudioSession(
+        capture=capture_factory(),
+        recording_dir=recording_dir,
+    )
+
+
 class StudioWindow:
     """Load a script file, review its lines, and (later) record them.
 
@@ -95,10 +120,9 @@ class StudioWindow:
 def build_app() -> tk.Tk:
     """Create the root window and its Studio UI without starting the event loop."""
     root = tk.Tk()
-    StudioWindow(root)
+    StudioWindow(root, session=build_default_session())
     return root
 
 
 def main() -> None:
     build_app().mainloop()
-

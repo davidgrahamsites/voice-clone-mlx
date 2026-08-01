@@ -1,4 +1,4 @@
-# Recording — script generation
+# Recording — script generation and local capture
 
 Turns source material into a recording script: a teleprompter Markdown file to
 read from, and a JSONL manifest that is the durable record of what was said,
@@ -43,6 +43,20 @@ Neither `script_rendering` nor `script_storage` imports `script_generator`;
 they duck-type utterances on `.id`/`.text`/`.style` and `.to_dict()`. That
 keeps the cycle out and makes both seams testable with hand-built objects.
 
+`capture.capture_session` accepts one injected capture callable and persists
+its provider-neutral signed pulse-code modulation (PCM) frames as a lossless
+WAV plus an append-only JSON record. `macos_microphone.MacOSMicrophoneCapture`
+is the optional macOS provider for that callable. It uses Audio Queue Services
+through the Python standard library and has no third-party dependency.
+
+Importing or constructing the provider does not load the native framework,
+open an input device, or ask for permission. Calling it is the sole native
+boundary: Audio Queue Services opens the input then, so macOS can show its
+permission prompt only after the Studio user explicitly chooses Record. A
+take is bounded to 60 seconds and defaults to five seconds of mono, 24 kHz,
+signed 16-bit PCM. Deleting `macos_microphone.py` leaves `capture.py` and every
+provider-neutral recording artifact unchanged.
+
 ## Outputs
 
 Written to the output directory:
@@ -57,6 +71,9 @@ Returned in memory: `ScriptOutput` with both paths, the utterance list, and a
 coverage dict (`unique_letters`, `total_utterances`, `total_words`,
 `has_questions`, `has_exclamations`, `has_numbers`).
 
+Local capture returns `CapturedPcm`; `capture_session` writes `<take>.wav` and
+`<take>.json` into an existing caller-selected directory.
+
 ## Human check
 
 Before recording a session:
@@ -68,6 +85,9 @@ Before recording a session:
 3. Spot-check that manifest IDs match the Markdown IDs for a few utterances.
 4. Check the coverage dict is not lopsided — no questions or no exclamations
    across a whole session means the source material is too uniform to train on.
+5. In the packaged Voice Studio app, choose Record and confirm macOS asks for
+   microphone access then—not when the app opens—and that denial is reported
+   in the status bar without writing a take.
 
 ## Tests
 
@@ -76,3 +96,6 @@ domain behavior. `tests/voice_studio/test_script_generation_seams.py` covers
 rendering, storage, ID stability, and Markdown injection. Red/green evidence
 for the current design is recorded in
 `docs/verification/script-generator-tdd.md`.
+`tests/voice_studio/test_recording_capture.py` covers persistence with fake PCM;
+`tests/voice_studio/test_macos_microphone.py` covers the optional provider with
+a fake native boundary and never opens a microphone.
