@@ -203,3 +203,46 @@ TDD evidence (measured after integration):
     focused command: 59 passed (44 + 15)
     full suite: 1203 passed, 9 skipped
     UI opt-in suite: 1212 passed
+
+## Transcription manifest
+
+`transcription_manifest.py` records an already-parsed `Transcript` as durable
+JSONL, giving the chain a reviewable artifact between "Whisper JSON was parsed"
+and "windows and alignment are computed". `transcription_row_schema.py` holds
+the vocabulary — schema version, key set, per-field validators — and
+`transcription_manifest.py` re-exports every public name, so callers import one
+module. Provider-neutral: `transcriber` and `transcriber_version` are
+caller-supplied strings recorded verbatim and never detected; nothing here
+knows what MLX, Whisper, or Qwen are.
+
+Segment ids are positional — `<master_audio stem>-<index:04d>` — so the same
+transcript always yields the same ids. Because they are derived, the parser
+recomputes them and refuses a manifest whose rows were renamed, reordered, or
+dropped. `language` is optional, caller-supplied, and omitted from JSON when
+unset so its absence is a fact rather than a null.
+
+Every field rule lives in `__post_init__`, so direct construction and parsing
+face identical checks: a rule only the builder enforced would be bypassed by a
+hand-edited manifest. Refused are absolute, traversing, or schemed
+`master_audio`; ids containing path separators; times that are non-finite,
+negative, non-advancing, or `bool` (an `int` subclass, so `True` must not pass
+as 1); blank text; a foreign `schema_version`; and any unknown or missing key.
+Text is stored byte for byte — Whisper's spacing is evidence.
+
+Ordering and non-overlap are not restated here. `parse_transcription_jsonl`
+rebuilds a payload and runs `parse_whisper_json`, so that rule keeps its one
+home; a written artifact is refused rather than silently reordered. The seam
+opens no file, starts no process, and imports no backend, network, or clock.
+
+TDD evidence (measured at this worktree):
+
+    focused: PYTHONPATH=src python3 -m pytest \
+      tests/voice_studio/test_transcription_manifest.py \
+      tests/voice_studio/test_transcription_manifest_safety.py -q
+      135 passed (49 + 86)
+    baseline (both ignored): 1580 passed, 9 skipped
+    full suite:              1715 passed, 9 skipped
+
+`PYTHONPATH=src` is required: this worktree has no `conftest.py`, `setup.py`,
+or installed package, so no test collects without it. Pre-existing, unrelated
+to this seam.
