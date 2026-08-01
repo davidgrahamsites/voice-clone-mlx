@@ -319,3 +319,66 @@ class TestNothingIsExecutedOrWritten:
         assert "studio_app" not in source
         assert "reader_app" not in source
 
+
+
+class TestResolveLocalAudio:
+    """The one home for "is this an existing local audio file?".
+
+    `build_whisper_plan` and the Free Speech Mode planner both need this
+    check, and the planner needs it for candidates it will never build a plan
+    for. Extracting it keeps one implementation rather than two that can
+    drift apart on what counts as remote.
+    """
+
+    def test_returns_the_resolved_absolute_path(self, staged):
+        audio, _out, _model = staged
+
+        resolved = whisper_plan.resolve_local_audio(audio)
+
+        assert resolved == audio.resolve()
+        assert resolved.is_absolute()
+
+    def test_accepts_a_string_path(self, staged):
+        audio, _out, _model = staged
+
+        assert whisper_plan.resolve_local_audio(str(audio)) == audio.resolve()
+
+    def test_missing_audio_rejects(self, tmp_path):
+        with pytest.raises(WhisperPlanError):
+            whisper_plan.resolve_local_audio(tmp_path / "absent.wav")
+
+    def test_directory_as_audio_rejects(self, tmp_path):
+        with pytest.raises(WhisperPlanError):
+            whisper_plan.resolve_local_audio(tmp_path)
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "http://example.com/session.wav",
+            "https://example.com/session.wav",
+            "s3://bucket/session.wav",
+        ],
+    )
+    def test_remote_audio_rejects(self, value):
+        with pytest.raises(WhisperPlanError):
+            whisper_plan.resolve_local_audio(value)
+
+    @pytest.mark.parametrize("value", [None, 3, True, object()])
+    def test_non_path_audio_rejects(self, value):
+        with pytest.raises(WhisperPlanError):
+            whisper_plan.resolve_local_audio(value)
+
+    def test_build_whisper_plan_uses_it(self, staged, monkeypatch):
+        """The builder must not keep a second copy of the check."""
+        audio, _out, _model = staged
+        seen = []
+
+        def fake(value):
+            seen.append(value)
+            return Path(audio).resolve()
+
+        monkeypatch.setattr(whisper_plan, "resolve_local_audio", fake)
+
+        build(staged)
+
+        assert len(seen) == 1

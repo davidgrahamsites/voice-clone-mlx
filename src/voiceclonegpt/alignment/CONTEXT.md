@@ -25,6 +25,25 @@ does not load models, edit audio, transcribe, or write manifests.
 Listen to accepted and rejected fixture clips and confirm that every mixed-
 speaker clip is rejected before dataset construction.
 
+### Malformed spans are refused, not worked around
+
+`decide_clip` and `SpeakerTurn` now raise `OverlapGateError` (a `ValueError`)
+for non-numeric, `bool`, non-finite, negative, or non-advancing times; blank or
+non-string speaker ids; a non-`bool` overlap flag; and a `turns` argument that
+is not a sequence of `SpeakerTurn`. The public signature of `decide_clip` is
+unchanged and every valid input decides exactly as before — the four original
+test bodies are byte-identical and still pass; only the import block grew.
+
+`ClipDecision` also gained an `accepted` property and the `ACCEPT_STATUS` /
+`REJECT_STATUS` constants, so a caller asking "was this accepted?" never spells
+the status string itself. That string now has one home.
+
+The motivating case is `NaN`: it compares False against everything, so a turn
+with a `NaN` end would fail the intersection test and a guest talking over the
+clip would look like it was outside it. The gate would then accept mixed audio.
+A safety decision made from a malformed span is worse than no decision, so
+there is no coercion or default here.
+
 ## Style markers
 
 `marker_parser.py` owns the **wording** of a spoken style marker — the one home
@@ -114,6 +133,10 @@ runner can use with the installed MLX Whisper package. It requires an existing
 audio file, model path, and output directory. Remote-looking paths, missing
 assets, directories in the wrong role, invalid language values, and non-path
 inputs are refused before an argument list is returned.
+
+The audio check is public as `resolve_local_audio(audio_path) -> Path` so other
+seams can ask the same question without a second copy of the rule; the builder
+itself now calls it. See the Free Speech Mode planner section below.
 
 The model path is always explicit, so a Hub identifier cannot silently trigger
 a download. The plan uses the current interpreter (`sys.executable`) with
@@ -246,3 +269,85 @@ TDD evidence (measured at this worktree):
 `PYTHONPATH=src` is required: this worktree has no `conftest.py`, `setup.py`,
 or installed package, so no test collects without it. Pre-existing, unrelated
 to this seam.
+
+## Free Speech Mode candidate planner
+
+`free_speech_plan.py` is the seam between diarization and transcription for
+recordings that have no script. `plan_free_speech(candidates, target_speaker=,
+model_path=, output_dir=, language=None)` returns one frozen
+`PlannedCandidate` per input `FreeSpeechCandidate`, in input order.
+
+It owns no policy. Admission is `overlap_gate.decide_clip` and the command is
+`whisper_plan.build_whisper_plan`; both are called through module-level names,
+and the safety tests monkeypatch them to prove the delegation rather than
+assert on a re-implementation. The gate's reason vocabulary appears nowhere in
+this module's code literals.
+
+### Nothing is dropped
+
+A rejected candidate stays in the result with `whisper_plan=None` and its
+`ClipDecision`. A planner that returned only accepted rows would make "the gate
+refused this" indistinguishable from "the diarizer never proposed it", and only
+the first is worth a reviewer's attention.
+
+### Nothing is salvaged
+
+Rejection is whole-candidate. The clean-looking opening seconds of a clip a
+guest talks over are not kept, and an accepted candidate is planned at its full
+span. A diarizer boundary is an estimate; trimming to it trades a reviewed
+rejection for an unreviewed guess about where the second voice starts. There is
+no parameter, result field, or identifier in the module that would enable it,
+and a test asserts that by AST.
+
+### Every candidate's audio is validated, accepted or not
+
+`whisper_plan.resolve_local_audio(audio_path) -> Path` is the one home for
+"is this an existing local audio file?". `build_whisper_plan` calls it, and so
+does the planner — for **every** candidate, before any gate decision, in a
+single pass over the batch. A remote or missing path refuses the whole call.
+
+Validation is deliberately not skippable by being rejected. A bad path is a
+fault in whatever produced the batch, and surfacing it only for the candidates
+the gate happened to accept would make the error depend on who was talking in
+the room. Rejected candidates still carry their resolved absolute
+`audio_path`; what they do not get is a Whisper plan.
+
+### Cap
+
+At most `MAX_CANDIDATES` candidates per call — the module is the one home for
+that number, so it is not restated here. The length is measured **before** the
+batch is materialized, so an oversized lazily-loaded sequence is refused
+without being read; a test double raising on `__iter__`/`__getitem__` proves
+it. One over the cap raises `FreeSpeechPlanError` before the gate is consulted
+even once. An unbounded
+diarizer result becomes an explicit error rather than a silently enormous batch
+of work that no one has time to review.
+
+Inputs are never mutated and results are frozen dataclasses and tuples. The
+module imports no process, network, audio, or model package, starts nothing,
+and writes nothing — **no transcription is executed here**. It produces an argv
+a separate runner, which does not exist yet, would have to run.
+
+### Human check
+
+For a recording with a known guest interruption, confirm every candidate
+touching the interruption carries `whisper_plan=None`, and that no planned span
+is shorter than the candidate the diarizer proposed.
+
+### TDD evidence (measured at this worktree)
+
+    red — before implementation:
+      ModuleNotFoundError: No module named
+        'voiceclonegpt.alignment.free_speech_plan'
+      ImportError: cannot import name 'OverlapGateError'
+      (3 errors during collection)
+
+    focused: PYTHONPATH=src python3 -m pytest \
+      tests/voice_studio/test_overlap_gate.py \
+      tests/voice_studio/test_free_speech_plan.py \
+      tests/voice_studio/test_free_speech_plan_safety.py \
+      tests/voice_studio/test_whisper_plan.py -q
+      163 passed
+
+    baseline:   2009 passed, 9 skipped
+    full suite: 2106 passed, 9 skipped (+97)

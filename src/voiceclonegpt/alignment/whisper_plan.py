@@ -74,6 +74,30 @@ def _local_path(value, field: str) -> Path:
         raise WhisperPlanError(f"{field} does not exist: {value}") from exc
 
 
+def resolve_local_audio(audio_path) -> Path:
+    """Resolve an audio path to an existing local file, or refuse.
+
+    The one home for "is this real audio on this machine?". Callers other than
+    `build_whisper_plan` need the same answer — the Free Speech Mode planner
+    checks every candidate, including ones it will build no plan for — and a
+    second copy of the rule would drift on what counts as remote.
+
+    Args:
+        audio_path: A path-like value naming the audio file.
+
+    Returns:
+        The resolved absolute path.
+
+    Raises:
+        WhisperPlanError: The value is not a path, names a remote locator,
+            does not exist, or is not a file.
+    """
+    audio = _local_path(audio_path, "audio_path")
+    if not audio.is_file():
+        raise WhisperPlanError(f"audio_path is not a file: {audio_path}")
+    return audio
+
+
 def _checked_language(language) -> Optional[str]:
     """Validate the optional language code."""
     if language is None:
@@ -107,9 +131,7 @@ def build_whisper_plan(
         WhisperPlanError: A path is missing, remote, of the wrong kind, or not
             a path at all; or the language is blank or not a string.
     """
-    audio = _local_path(audio_path, "audio_path")
-    if not audio.is_file():
-        raise WhisperPlanError(f"audio_path is not a file: {audio_path}")
+    audio = resolve_local_audio(audio_path)
 
     output = _local_path(output_dir, "output_dir")
     if not output.is_dir():
