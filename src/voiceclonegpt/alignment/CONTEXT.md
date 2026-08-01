@@ -151,6 +151,28 @@ TDD evidence:
     after this seam: 882 passed, 9 skipped
     after this seam with UI opt-in: 891 passed
 
+## Whisper runtime runner
+
+`whisper_runner.py` is the only runtime seam for one existing `WhisperPlan`.
+`run_whisper_plan(plan, master_audio=, transcriber_version=, executor=,
+output_reader=, timeout_s=)` passes that plan's argv unchanged to the local
+process exactly once. The plan already fixes the backend as the current
+interpreter running `-m mlx_whisper` with an explicit local model; the runner
+does not import MLX or discover/download a model.
+
+The default reader accepts only the JSON filename the local command-line tool
+writes: `<audio stem>.json` in the already-validated output directory. Its
+payload goes through `parse_whisper_json`, then the existing transcription
+manifest builder and serializer. The returned JSONL preserves the caller's
+safe relative `master_audio`, uses the plan language, and records
+`mlx_whisper` plus caller-supplied version. No manifest schema changes.
+
+Execution is bounded by a positive finite timeout (120 seconds by default),
+has no retry or fallback, and discards process output rather than accumulating
+unbounded logs. Failures from execution, reading, parsing, or manifest
+construction become `WhisperRunnerError`. Tests inject both executor and
+output reader, so they run no process, model, or audio.
+
 ## Whisper JSON transcript parser
 
 `whisper_json.py` is the pure handoff from a local MLX Whisper runner to
