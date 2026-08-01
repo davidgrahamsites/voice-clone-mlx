@@ -29,58 +29,21 @@ from voiceclonegpt.synthesis.readiness import (
     check_runtime_readiness,
 )
 
-RUNTIME_ID = "mlx_qwen"
-
-
-@pytest.fixture
-def bundle(tmp_path):
-    """A bundle laid out the way `mlx_qwen_bundle` writes one."""
-    root = tmp_path / "alex@0.1.0"
-    variant = root / "runtimes" / RUNTIME_ID
-    (variant / "model").mkdir(parents=True)
-    (variant / "model" / "weights.safetensors").write_bytes(b"w")
-    (variant / "ref").mkdir()
-    (variant / "ref" / "neutral.wav").write_bytes(b"RIFFref")
-    (variant / "config.json").write_text(
-        json.dumps(
-            {
-                "model_locator": "model",
-                "ref_audio": "ref/neutral.wav",
-                "ref_text": "This is the neutral reading.",
-                "sample_rate": 24000,
-            }
-        ),
-        encoding="utf-8",
-    )
-    (root / "bundle.json").write_text("{}", encoding="utf-8")
-    return root
-
-
-@pytest.fixture
-def all_clear(monkeypatch):
-    """Make every environment-dependent check pass."""
-    monkeypatch.setattr(readiness, "_dependency_present", lambda name: True)
-    monkeypatch.setattr(readiness, "_registered_runtimes", lambda: (RUNTIME_ID,))
-    monkeypatch.setattr(readiness, "read_bundle", lambda path: object())
-
-
-def check(bundle, runtime_id=RUNTIME_ID, **kwargs):
-    return check_runtime_readiness(bundle, runtime_id=runtime_id, **kwargs)
-
+from conftest import RUNTIME_ID, check  # the one home for these
 
 class TestAllClear:
-    """A fully staged bundle in a ready environment."""
+    """A fully staged readiness_bundle in a ready environment."""
 
-    def test_reports_ready(self, bundle, all_clear):
-        assert check(bundle).ready is True
+    def test_reports_ready(self, readiness_bundle, all_clear):
+        assert check(readiness_bundle).ready is True
 
-    def test_no_blockers(self, bundle, all_clear):
-        assert check(bundle).blockers == ()
+    def test_no_blockers(self, readiness_bundle, all_clear):
+        assert check(readiness_bundle).blockers == ()
 
-    def test_every_required_check_ran(self, bundle, all_clear):
-        assert set(check(bundle).checked) == set(REQUIRED_CHECKS)
+    def test_every_required_check_ran(self, readiness_bundle, all_clear):
+        assert set(check(readiness_bundle).checked) == set(REQUIRED_CHECKS)
 
-    def test_no_model_is_loaded(self, bundle, all_clear, monkeypatch):
+    def test_no_model_is_loaded(self, readiness_bundle, all_clear, monkeypatch):
         """The probe stands in for the loader and must never return a model."""
         loaded = []
         real_probe = readiness._probe
@@ -91,7 +54,7 @@ class TestAllClear:
 
         monkeypatch.setattr(readiness, "_probe", recording_probe)
 
-        check(bundle)
+        check(readiness_bundle)
 
         assert len(loaded) == 1  # reached the loader, returned nothing
 
@@ -99,10 +62,10 @@ class TestAllClear:
 class TestDependency:
     """The backend package must be importable — but is never imported."""
 
-    def test_missing_dependency_blocks(self, bundle, all_clear, monkeypatch):
+    def test_missing_dependency_blocks(self, readiness_bundle, all_clear, monkeypatch):
         monkeypatch.setattr(readiness, "_dependency_present", lambda name: False)
 
-        report = check(bundle)
+        report = check(readiness_bundle)
 
         assert report.ready is False
         assert BLOCKER_DEPENDENCY_MISSING in report.blockers
@@ -130,16 +93,16 @@ class TestDependency:
 class TestRegistration:
     """A runtime nobody can select is not ready, whatever else is true."""
 
-    def test_unregistered_runtime_blocks(self, bundle, all_clear, monkeypatch):
+    def test_unregistered_runtime_blocks(self, readiness_bundle, all_clear, monkeypatch):
         monkeypatch.setattr(readiness, "_registered_runtimes", lambda: ("null",))
 
-        report = check(bundle)
+        report = check(readiness_bundle)
 
         assert report.ready is False
         assert BLOCKER_RUNTIME_NOT_REGISTERED in report.blockers
 
-    def test_unknown_runtime_is_reported_not_raised(self, bundle, all_clear):
-        report = check(bundle, runtime_id="does-not-exist")
+    def test_unknown_runtime_is_reported_not_raised(self, readiness_bundle, all_clear):
+        report = check(readiness_bundle, runtime_id="does-not-exist")
 
         assert report.ready is False
         assert BLOCKER_RUNTIME_NOT_REGISTERED in report.blockers
@@ -163,15 +126,15 @@ class TestRegistration:
 
 
 class TestBundle:
-    """Bundle validity is the bundle reader's answer, not ours."""
+    """Bundle validity is the readiness_bundle reader's answer, not ours."""
 
-    def test_unreadable_bundle_blocks(self, bundle, all_clear, monkeypatch):
+    def test_unreadable_bundle_blocks(self, readiness_bundle, all_clear, monkeypatch):
         def failing(path):
             raise ValueError("checksum mismatch")
 
         monkeypatch.setattr(readiness, "read_bundle", failing)
 
-        report = check(bundle)
+        report = check(readiness_bundle)
 
         assert report.ready is False
         assert BLOCKER_BUNDLE_UNREADABLE in report.blockers
@@ -189,7 +152,7 @@ class TestBundle:
         assert BLOCKER_BUNDLE_UNREADABLE in report.blockers
 
     def test_bundle_check_is_skipped_when_the_reader_is_unavailable(
-        self, bundle, all_clear, monkeypatch
+        self, readiness_bundle, all_clear, monkeypatch
     ):
         """`shared.bundle_reader` ships on another branch.
 
@@ -199,7 +162,7 @@ class TestBundle:
         """
         monkeypatch.setattr(readiness, "read_bundle", None)
 
-        report = check(bundle)
+        report = check(readiness_bundle)
 
         assert "bundle" not in report.checked
         assert report.ready is False
@@ -208,53 +171,53 @@ class TestBundle:
 class TestConfig:
     """Config problems come from the runtime's own validation."""
 
-    def _rewrite(self, bundle, **overrides):
-        path = bundle / "runtimes" / RUNTIME_ID / "config.json"
+    def _rewrite(self, readiness_bundle, **overrides):
+        path = readiness_bundle / "runtimes" / RUNTIME_ID / "config.json"
         config = json.loads(path.read_text())
         config.update(overrides)
         path.write_text(json.dumps(config), encoding="utf-8")
 
-    def test_missing_config_blocks(self, bundle, all_clear):
-        (bundle / "runtimes" / RUNTIME_ID / "config.json").unlink()
+    def test_missing_config_blocks(self, readiness_bundle, all_clear):
+        (readiness_bundle / "runtimes" / RUNTIME_ID / "config.json").unlink()
 
-        report = check(bundle)
-
-        assert BLOCKER_CONFIG_INVALID in report.blockers
-
-    def test_malformed_config_blocks(self, bundle, all_clear):
-        (bundle / "runtimes" / RUNTIME_ID / "config.json").write_text("not json")
-
-        report = check(bundle)
+        report = check(readiness_bundle)
 
         assert BLOCKER_CONFIG_INVALID in report.blockers
 
-    def test_blank_reference_text_blocks(self, bundle, all_clear):
-        self._rewrite(bundle, ref_text="   ")
+    def test_malformed_config_blocks(self, readiness_bundle, all_clear):
+        (readiness_bundle / "runtimes" / RUNTIME_ID / "config.json").write_text("not json")
 
-        report = check(bundle)
+        report = check(readiness_bundle)
 
         assert BLOCKER_CONFIG_INVALID in report.blockers
 
-    def test_absent_model_is_reported_as_such(self, bundle, all_clear):
-        self._rewrite(bundle, model_locator="not_downloaded_yet")
+    def test_blank_reference_text_blocks(self, readiness_bundle, all_clear):
+        self._rewrite(readiness_bundle, ref_text="   ")
 
-        report = check(bundle)
+        report = check(readiness_bundle)
+
+        assert BLOCKER_CONFIG_INVALID in report.blockers
+
+    def test_absent_model_is_reported_as_such(self, readiness_bundle, all_clear):
+        self._rewrite(readiness_bundle, model_locator="not_downloaded_yet")
+
+        report = check(readiness_bundle)
 
         assert BLOCKER_MODEL_ABSENT in report.blockers
         assert report.ready is False
 
-    def test_absent_reference_is_reported_as_such(self, bundle, all_clear):
-        self._rewrite(bundle, ref_audio="ref/missing.wav")
+    def test_absent_reference_is_reported_as_such(self, readiness_bundle, all_clear):
+        self._rewrite(readiness_bundle, ref_audio="ref/missing.wav")
 
-        report = check(bundle)
+        report = check(readiness_bundle)
 
         assert BLOCKER_REFERENCE_ABSENT in report.blockers
 
-    def test_remote_locator_is_reported_as_a_missing_model(self, bundle, all_clear):
+    def test_remote_locator_is_reported_as_a_missing_model(self, readiness_bundle, all_clear):
         """A hub id is not a local model, however it is spelled."""
-        self._rewrite(bundle, model_locator="hf://mlx-community/Qwen3-TTS")
+        self._rewrite(readiness_bundle, model_locator="hf://mlx-community/Qwen3-TTS")
 
-        report = check(bundle)
+        report = check(readiness_bundle)
 
         assert BLOCKER_MODEL_ABSENT in report.blockers
 
@@ -270,21 +233,21 @@ class TestMultipleBlockers:
     """Everything wrong is reported at once, not just the first thing."""
 
     def test_dependency_and_registration_together(
-        self, bundle, all_clear, monkeypatch
+        self, readiness_bundle, all_clear, monkeypatch
     ):
         monkeypatch.setattr(readiness, "_dependency_present", lambda name: False)
         monkeypatch.setattr(readiness, "_registered_runtimes", lambda: ())
 
-        report = check(bundle)
+        report = check(readiness_bundle)
 
         assert BLOCKER_DEPENDENCY_MISSING in report.blockers
         assert BLOCKER_RUNTIME_NOT_REGISTERED in report.blockers
 
-    def test_environment_and_config_together(self, bundle, all_clear, monkeypatch):
+    def test_environment_and_config_together(self, readiness_bundle, all_clear, monkeypatch):
         monkeypatch.setattr(readiness, "_dependency_present", lambda name: False)
-        (bundle / "runtimes" / RUNTIME_ID / "config.json").write_text("nope")
+        (readiness_bundle / "runtimes" / RUNTIME_ID / "config.json").write_text("nope")
 
-        report = check(bundle)
+        report = check(readiness_bundle)
 
         assert len(report.blockers) >= 2
 
@@ -317,30 +280,30 @@ class TestMultipleBlockers:
 class TestReportContract:
     """The report is a small immutable value."""
 
-    def test_report_is_frozen(self, bundle, all_clear):
+    def test_report_is_frozen(self, readiness_bundle, all_clear):
         with pytest.raises(dataclasses.FrozenInstanceError):
-            check(bundle).ready = False
+            check(readiness_bundle).ready = False
 
-    def test_fields_are_tuples(self, bundle, all_clear):
-        report = check(bundle)
+    def test_fields_are_tuples(self, readiness_bundle, all_clear):
+        report = check(readiness_bundle)
 
         assert isinstance(report.blockers, tuple)
         assert isinstance(report.checked, tuple)
 
-    def test_ready_is_a_bool(self, bundle, all_clear):
-        assert check(bundle).ready is True
+    def test_ready_is_a_bool(self, readiness_bundle, all_clear):
+        assert check(readiness_bundle).ready is True
 
     def test_report_is_constructible_directly(self):
         report = ReadinessReport(ready=False, blockers=("config_invalid",))
 
         assert report.blockers == ("config_invalid",)
 
-    def test_ready_requires_every_check_to_have_run(self, bundle, all_clear,
+    def test_ready_requires_every_check_to_have_run(self, readiness_bundle, all_clear,
                                                     monkeypatch):
         """No blockers is not the same as verified."""
         monkeypatch.setattr(readiness, "read_bundle", None)
 
-        report = check(bundle)
+        report = check(readiness_bundle)
 
         assert report.blockers == ()
         assert report.ready is False
@@ -349,12 +312,12 @@ class TestReportContract:
 class TestSeamIsPure:
     """Reports on the world; changes nothing in it."""
 
-    def test_nothing_is_written(self, bundle, all_clear):
-        before = sorted(p.name for p in bundle.rglob("*"))
+    def test_nothing_is_written(self, readiness_bundle, all_clear):
+        before = sorted(p.name for p in readiness_bundle.rglob("*"))
 
-        check(bundle)
+        check(readiness_bundle)
 
-        assert sorted(p.name for p in bundle.rglob("*")) == before
+        assert sorted(p.name for p in readiness_bundle.rglob("*")) == before
 
     def test_imports_nothing_dangerous(self):
         """Match imported *module names*, not substrings.
