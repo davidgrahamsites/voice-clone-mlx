@@ -1,9 +1,21 @@
 # VoiceCloneMLX thirty-minute owner recording script
 
 This script is designed for approximately thirty minutes of captured speech,
-including required pauses. Record it as **two sessions** with a five-to-ten
-minute break. Use the same room, recorder, position, distance, and gain in both
-sessions.
+including required pauses. You may record it as **three 10-minute blocks, four
+7-to-8-minute blocks, or six 5-minute blocks**. Shorter blocks are completely
+acceptable and are often easier on your voice. Use the same room, recorder,
+position, distance, and gain in every block.
+
+## Short-block recording plan
+
+Treat each block as its own recording file. At the start of every block, record
+thirty seconds of room tone, wait three seconds, read the calibration passage,
+and wait two seconds. Stop only after finishing a numbered prompt and taking
+the required two-second pause; never stop in the middle of a prompt. At the
+end of the block, record the closing calibration and room tone if you can.
+Write down the first and last prompt ID for each file, then resume with the
+next prompt in the next block. The two headings below describe content order;
+they do not require two long recording sessions.
 
 Timing target: 2,900 prompt words, four readings of the calibration passage,
 eight spoken style markers, two seconds after each of 166 numbered prompts,
@@ -55,7 +67,7 @@ requirement.
 ## Calibration passage
 
 Do not announce the calibration. Read this same paragraph at the beginning and
-end of **both** sessions:
+end of every recording block:
 
 At first light, the quiet neighborhood began to stir. A delivery truck turned
 the corner, two birds crossed the pale sky, and someone opened a window above

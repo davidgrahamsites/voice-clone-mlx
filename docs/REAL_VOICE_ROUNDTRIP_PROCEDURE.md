@@ -191,8 +191,11 @@ Manual checks:
 ## Stage 3 — Record the 30-minute pilot
 
 Use [`data/scripts/voice_training_script_30_minutes.md`](../data/scripts/voice_training_script_30_minutes.md).
-It is designed as two approximately fifteen-minute sessions so vocal fatigue
-does not become part of the learned voice.
+It is designed as multiple five-to-ten-minute recording blocks so vocal fatigue
+does not become part of the learned voice. Three ten-minute blocks, four
+7-to-8-minute blocks, or six five-minute blocks are all valid ways to reach the
+same approximately thirty-minute target. Each block is a separate file with
+its own room tone and calibration.
 
 ### Recorder and room
 
