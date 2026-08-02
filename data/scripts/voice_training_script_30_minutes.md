@@ -79,9 +79,17 @@ Say: **This is the neutral reading.**
 
 NEUTRAL-A-001: The morning schedule begins with a short review of yesterday's work and a clear list of today's priorities.
 
+[Pause for two seconds.]
+
 NEUTRAL-A-002: I placed the original recording in a protected folder, created a working copy, and wrote down its checksum.
 
+[Pause for two seconds.]
+
 NEUTRAL-A-003: A useful explanation tells the reader what happened, why it matters, and what should happen next.
+
+[Pause for two seconds.]
+
+_(and so on... — pause silently for two seconds after every numbered reading.)_
 
 NEUTRAL-A-004: The first draft may be incomplete, but it gives the next round of thinking something specific to improve.
 
