@@ -12,7 +12,7 @@ VoiceCloneMLX is a two-app macOS workspace: **Voice Studio** prepares a clean,
 expressive voice dataset, and **Voice Reader** turns reviewed writing into
 audio through a versioned voice-model bundle.
 
-[Explore the project page](docs/index.html) · [Read the rendered procedure](docs/procedure.html) · [Open the rendered 30-minute script](docs/recording-script.html)
+[Explore the project page](docs/index.html) · [Read the rendered procedure](docs/procedure.html) · [Open the six-block script](docs/six-block-script.html) · [Open the full script](docs/recording-script.html)
 
 </div>
 
