@@ -29,7 +29,17 @@ def prompts() -> list[tuple[str, str, str | None]]:
     return rows
 
 
-def block_html(number: int, rows: list[tuple[str, str, str | None]]) -> str:
+def calibration() -> str:
+    source = SOURCE.read_text(encoding="utf-8")
+    section = source.split("## Calibration passage", 1)[1].split("---", 1)[0]
+    lines = []
+    for line in section.splitlines():
+        if line.strip() and not line.startswith("Do not announce") and not line.startswith("Read this"):
+            lines.append(line.strip())
+    return " ".join(lines)
+
+
+def block_html(number: int, rows: list[tuple[str, str, str | None]], calibration_text: str) -> str:
     start, end = rows[0][0], rows[-1][0]
     items = []
     previous_marker = None
@@ -41,7 +51,7 @@ def block_html(number: int, rows: list[tuple[str, str, str | None]]) -> str:
     items = "\n".join(items)
     return f"""      <section class=\"script-block\">
         <div class=\"script-heading\"><span class=\"block-number\">Block {number:02d}</span><span><strong>{start} → {end}</strong><small>Five-minute recording segment</small></span></div>
-        <div class=\"script-body\"><p class=\"block-note\"><strong>Read the sentences only.</strong> Do not speak the prompt IDs. Pause silently for two seconds after each sentence.</p><ol>
+        <div class=\"script-body\"><p class=\"block-note\"><strong>Start and finish with calibration.</strong> Read the passage below without announcing it, then pause two seconds before the first prompt.</p><p class=\"calibration\">{html.escape(calibration_text)}</p><p class=\"block-note\"><strong>Read the sentences only.</strong> Do not speak the prompt IDs. Pause silently for two seconds after each sentence.</p><ol>
 {items}
         </ol></div>
       </section>"""
@@ -49,8 +59,9 @@ def block_html(number: int, rows: list[tuple[str, str, str | None]]) -> str:
 
 def render() -> str:
     rows = prompts()
+    calibration_text = calibration()
     blocks = [rows[i * 100 // 6 : (i + 1) * 100 // 6] for i in range(6)]
-    cards = "\n".join(block_html(i + 1, block) for i, block in enumerate(blocks))
+    cards = "\n".join(block_html(i + 1, block, calibration_text) for i, block in enumerate(blocks))
     canonical = html.escape(SOURCE.read_text(encoding="utf-8"))
     return f'''<!doctype html>
 <html lang="en">
