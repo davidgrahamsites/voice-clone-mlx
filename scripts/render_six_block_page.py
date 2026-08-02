@@ -38,6 +38,8 @@ def calibration() -> str:
 
 def block_html(number: int, rows: list[tuple[str, str, str | None]], calibration_text: str) -> str:
     start, end = rows[0][0], rows[-1][0]
+    start_parts = start.lower().split("-")
+    filename = f"block-{number:02d}-{start_parts[0].lower()}-{start_parts[1].lower()}-{start_parts[2]}-to-{end.split('-')[-1].lower()}.wav"
     items = []
     previous_marker = None
     for prompt_id, text, marker in rows:
@@ -50,7 +52,7 @@ def block_html(number: int, rows: list[tuple[str, str, str | None]], calibration
         <div class=\"script-heading\"><span class=\"block-number\">Block {number:02d}</span><span><strong>{start} → {end}</strong><small>Five-minute recording segment</small></span></div>
         <div class=\"script-body\"><p class=\"block-note\"><strong>Start and finish with calibration.</strong> Read the passage below without announcing it, then pause two seconds before the first prompt.</p><p class=\"calibration\">{html.escape(calibration_text)}</p><p class=\"block-note\"><strong>Read the sentences only.</strong> Do not speak the prompt IDs. Pause silently for two seconds after each sentence.</p><ol>
 {items}
-        </ol></div>
+        </ol><p class="block-file">Save this recording as: {filename}</p></div>
       </section>"""
 
 
