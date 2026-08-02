@@ -32,11 +32,8 @@ def prompts() -> list[tuple[str, str, str | None]]:
 def calibration() -> str:
     source = SOURCE.read_text(encoding="utf-8")
     section = source.split("## Calibration passage", 1)[1].split("---", 1)[0]
-    lines = []
-    for line in section.splitlines():
-        if line.strip() and not line.startswith("Do not announce") and not line.startswith("Read this"):
-            lines.append(line.strip())
-    return " ".join(lines)
+    passage = section.split("At first light,", 1)[1]
+    return "At first light, " + " ".join(line.strip() for line in passage.splitlines() if line.strip())
 
 
 def block_html(number: int, rows: list[tuple[str, str, str | None]], calibration_text: str) -> str:
