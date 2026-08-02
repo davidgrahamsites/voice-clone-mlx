@@ -39,12 +39,12 @@ def block_html(number: int, rows: list[tuple[str, str, str | None]]) -> str:
             previous_marker = marker
         items.append(f'          <li><span class="prompt-id">{html.escape(prompt_id)}</span> {html.escape(text)}<span class="pause">Pause two seconds.</span></li>')
     items = "\n".join(items)
-    return f"""      <details class=\"script-block\" {'open' if number == 1 else ''}>
-        <summary><span class=\"block-number\">Block {number:02d}</span><span><strong>{start} → {end}</strong><small>Open to read this five-minute segment</small></span><span class=\"summary-mark\">＋</span></summary>
+    return f"""      <section class=\"script-block\">
+        <div class=\"script-heading\"><span class=\"block-number\">Block {number:02d}</span><span><strong>{start} → {end}</strong><small>Five-minute recording segment</small></span></div>
         <div class=\"script-body\"><p class=\"block-note\"><strong>Read the sentences only.</strong> Do not speak the prompt IDs. Pause silently for two seconds after each sentence.</p><ol>
 {items}
         </ol></div>
-      </details>"""
+      </section>"""
 
 
 def render() -> str:
@@ -75,7 +75,7 @@ def render() -> str:
     </section>
     <h2>After block six</h2>
     <p>Record the closing calibration and room tone. Keep every file, including rejected takes, until the review record is complete.</p>
-    <details class="canonical-source" open><summary>Canonical script — verbatim source</summary><pre>{canonical}</pre></details>
+    <section class="canonical-source"><h2>Canonical script — verbatim source</h2><pre>{canonical}</pre></section>
     <p><a class="source-link" href="recording-script.html">Open the master script ↗</a> <a class="source-link" href="../data/scripts/voice_training_script_30_minutes.md">Open the Markdown source ↗</a></p>
   </main>
   <footer class="site-footer"><div class="site-footer-inner"><span>Private, local-first, and explicit about what has been verified.</span><a href="index.html">Back to the project page →</a></div></footer>
