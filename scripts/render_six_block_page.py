@@ -11,26 +11,34 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "data/scripts/voice_training_script_30_minutes.md"
 OUTPUT = ROOT / "docs/six-block-script.html"
 PROMPT = re.compile(r"^(?P<id>[A-Z]+-[A-Z]-\d+):\s*(?P<text>.+)$")
+MARKER = re.compile(r"^Say:\s+\*\*(?P<text>.+?)\*\*$")
 
 
-def prompts() -> list[tuple[str, str]]:
+def prompts() -> list[tuple[str, str, str | None]]:
     rows = []
+    current_marker = None
     for line in SOURCE.read_text(encoding="utf-8").splitlines():
+        marker = MARKER.match(line)
+        if marker:
+            current_marker = marker.group("text")
         match = PROMPT.match(line)
         if match:
-            rows.append((match.group("id"), match.group("text")))
+            rows.append((match.group("id"), match.group("text"), current_marker))
     if len(rows) != 100:
         raise ValueError(f"expected 100 prompts, found {len(rows)}")
     return rows
 
 
-def block_html(number: int, rows: list[tuple[str, str]]) -> str:
+def block_html(number: int, rows: list[tuple[str, str, str | None]]) -> str:
     start, end = rows[0][0], rows[-1][0]
-    items = "\n".join(
-        f'          <li><span class="prompt-id">{html.escape(prompt_id)}</span> '
-        f'{html.escape(text)}<span class="pause">Pause two seconds.</span></li>'
-        for prompt_id, text in rows
-    )
+    items = []
+    previous_marker = None
+    for prompt_id, text, marker in rows:
+        if marker != previous_marker:
+            items.append(f'          <li class="style-marker"><strong>Say: {html.escape(marker)}</strong><span class="pause">Pause three seconds.</span></li>')
+            previous_marker = marker
+        items.append(f'          <li><span class="prompt-id">{html.escape(prompt_id)}</span> {html.escape(text)}<span class="pause">Pause two seconds.</span></li>')
+    items = "\n".join(items)
     return f"""      <details class=\"script-block\" {'open' if number == 1 else ''}>
         <summary><span class=\"block-number\">Block {number:02d}</span><span><strong>{start} → {end}</strong><small>Open to read this five-minute segment</small></span><span class=\"summary-mark\">＋</span></summary>
         <div class=\"script-body\"><p class=\"block-note\"><strong>Read the sentences only.</strong> Do not speak the prompt IDs. Pause silently for two seconds after each sentence.</p><ol>
@@ -43,6 +51,7 @@ def render() -> str:
     rows = prompts()
     blocks = [rows[i * 100 // 6 : (i + 1) * 100 // 6] for i in range(6)]
     cards = "\n".join(block_html(i + 1, block) for i, block in enumerate(blocks))
+    canonical = html.escape(SOURCE.read_text(encoding="utf-8"))
     return f'''<!doctype html>
 <html lang="en">
 <head>
@@ -66,6 +75,7 @@ def render() -> str:
     </section>
     <h2>After block six</h2>
     <p>Record the closing calibration and room tone. Keep every file, including rejected takes, until the review record is complete.</p>
+    <details class="canonical-source" open><summary>Canonical script — verbatim source</summary><pre>{canonical}</pre></details>
     <p><a class="source-link" href="recording-script.html">Open the master script ↗</a> <a class="source-link" href="../data/scripts/voice_training_script_30_minutes.md">Open the Markdown source ↗</a></p>
   </main>
   <footer class="site-footer"><div class="site-footer-inner"><span>Private, local-first, and explicit about what has been verified.</span><a href="index.html">Back to the project page →</a></div></footer>
