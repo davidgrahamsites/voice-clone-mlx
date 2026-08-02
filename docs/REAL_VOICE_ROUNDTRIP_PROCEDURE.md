@@ -52,7 +52,7 @@ encode that verified WAV locally as MP3 when the output filename ends in
 
 Record each approval in the run notes before performing the operation.
 
-- [ ] Permission to create `/Users/appleadmin/Apps/VoiceCloneGPT/.venv`.
+- [ ] Permission to create `/Users/appleadmin/Apps/VoiceCloneMLX/.venv`.
 - [ ] Permission to install exact pinned MLX/Whisper dependencies.
 - [ ] Acceptance of the exact Qwen, converter, and runtime licenses/revisions.
 - [ ] Permission to download exact model assets to named local directories.
@@ -125,7 +125,7 @@ interpreter on this machine. The intended native interpreter is:
 After explicit install approval, create a project-local environment:
 
 ```bash
-cd /Users/appleadmin/Apps/VoiceCloneGPT
+cd /Users/appleadmin/Apps/VoiceCloneMLX
 /opt/homebrew/bin/python3.13 -m venv .venv
 .venv/bin/python -c 'import platform; print(platform.machine())'
 .venv/bin/python -m pip install --require-hashes -r requirements-mlx.lock
@@ -157,7 +157,7 @@ import checks. Otherwise both `.app` launchers would correctly refuse to run.
 Current source entry points are:
 
 ```bash
-cd /Users/appleadmin/Apps/VoiceCloneGPT
+cd /Users/appleadmin/Apps/VoiceCloneMLX
 PYTHONPATH=src .venv/bin/python -m voiceclonemlx.studio_app
 PYTHONPATH=src .venv/bin/python -m voiceclonemlx.reader_app
 ```
@@ -565,7 +565,7 @@ human-verified allowlist.
 Run the repository gates:
 
 ```bash
-cd /Users/appleadmin/Apps/VoiceCloneGPT
+cd /Users/appleadmin/Apps/VoiceCloneMLX
 PYTHONPATH=src .venv/bin/python -m pytest -q
 python3 /Users/appleadmin/.codex/skills/icm-check/scripts/icm_check.py .
 git diff --check

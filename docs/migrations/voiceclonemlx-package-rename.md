@@ -36,9 +36,9 @@ MLX-first identity used by the local runtime and repository.
 5. Do not edit old published model bundles in place. Their model identity and
    artifact checksums remain valid; only the application loader path changes.
 
-The on-disk workspace folder may remain named `VoiceCloneGPT` until the user
-chooses to rename it. Commands in this checkout intentionally use the real
-folder path, while the code and product identity use VoiceCloneMLX.
+The on-disk workspace folder was subsequently renamed to `VoiceCloneMLX`.
+Update any saved shell shortcuts or open Orca workspaces that still point at
+the former `VoiceCloneGPT` path.
 
 ## Compatibility decision
 

@@ -169,7 +169,7 @@ Python interpreter, model weights, or a dependency environment.
 ### Launch from source
 
 ```bash
-cd /Users/appleadmin/Apps/VoiceCloneGPT
+cd /Users/appleadmin/Apps/VoiceCloneMLX
 
 PYTHONPATH=src python3 -m voiceclonemlx.studio_app
 PYTHONPATH=src python3 -m voiceclonemlx.reader_app

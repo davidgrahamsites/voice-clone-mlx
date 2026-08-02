@@ -83,7 +83,7 @@ procedure</div>
     operation.</p>
     <ul class="task-list">
     <li><label><input type="checkbox" />Permission to create
-    <code>/Users/appleadmin/Apps/VoiceCloneGPT/.venv</code>.</label></li>
+    <code>/Users/appleadmin/Apps/VoiceCloneMLX/.venv</code>.</label></li>
     <li><label><input type="checkbox" />Permission to install exact
     pinned MLX/Whisper dependencies.</label></li>
     <li><label><input type="checkbox" />Acceptance of the exact Qwen,
@@ -155,7 +155,7 @@ Rollback/deletion: &lt;exact procedure&gt;.</code></pre>
     <p>After explicit install approval, create a project-local
     environment:</p>
     <div class="sourceCode" id="cb4"><pre
-    class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /Users/appleadmin/Apps/VoiceCloneGPT</span>
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /Users/appleadmin/Apps/VoiceCloneMLX</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">/opt/homebrew/bin/python3.13</span> <span class="at">-m</span> venv .venv</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">.venv/bin/python</span> <span class="at">-c</span> <span class="st">&#39;import platform; print(platform.machine())&#39;</span></span>
 <span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ex">.venv/bin/python</span> <span class="at">-m</span> pip install <span class="at">--require-hashes</span> <span class="at">-r</span> requirements-mlx.lock</span></code></pre></div>
@@ -183,7 +183,7 @@ Rollback/deletion: &lt;exact procedure&gt;.</code></pre>
     Build and smoke-test the local apps</h2>
     <p>Current source entry points are:</p>
     <div class="sourceCode" id="cb6"><pre
-    class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /Users/appleadmin/Apps/VoiceCloneGPT</span>
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /Users/appleadmin/Apps/VoiceCloneMLX</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span>src <span class="ex">.venv/bin/python</span> <span class="at">-m</span> voiceclonemlx.studio_app</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span>src <span class="ex">.venv/bin/python</span> <span class="at">-m</span> voiceclonemlx.reader_app</span></code></pre></div>
     <p>Build the wrappers after the native-launcher change is
@@ -677,7 +677,7 @@ Stop conditions:</code></pre>
     — Final verification and release evidence</h2>
     <p>Run the repository gates:</p>
     <div class="sourceCode" id="cb12"><pre
-    class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /Users/appleadmin/Apps/VoiceCloneGPT</span>
+    class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> /Users/appleadmin/Apps/VoiceCloneMLX</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="va">PYTHONPATH</span><span class="op">=</span>src <span class="ex">.venv/bin/python</span> <span class="at">-m</span> pytest <span class="at">-q</span></span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ex">python3</span> /Users/appleadmin/.codex/skills/icm-check/scripts/icm_check.py .</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--check</span></span>
