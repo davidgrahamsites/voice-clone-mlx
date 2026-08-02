@@ -69,6 +69,19 @@ main img { max-width: 100%; height: auto; }
 .block-range { color: var(--ink); font-weight: 800; }
 .block-file { display: inline-block; margin-top: 12px; padding: 7px 10px; background: var(--ink); color: var(--lime); font: .72rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .block-note { max-width: 760px; padding: 20px 24px; border-left: 5px solid var(--coral); background: rgba(242, 127, 104, .14); }
+.script-stack { max-width: 920px; margin: 38px 0; }
+.script-block { margin: 16px 0; border: 1px solid var(--line); background: rgba(255,255,255,.26); box-shadow: 8px 8px 0 var(--blue); }
+.script-block:nth-child(2n) { box-shadow: 8px 8px 0 var(--lime); }
+.script-block summary { display: grid; grid-template-columns: 100px 1fr 34px; gap: 18px; align-items: center; padding: 22px 26px; cursor: pointer; list-style: none; }
+.script-block summary::-webkit-details-marker { display: none; }
+.script-block summary small { display: block; margin-top: 5px; color: var(--muted); font-size: .78rem; font-weight: 400; }
+.summary-mark { font-size: 1.6rem; color: var(--coral); text-align: right; }
+.script-block[open] .summary-mark { transform: rotate(45deg); }
+.script-body { padding: 0 26px 28px; border-top: 1px solid var(--line); }
+.script-body ol { max-width: none; padding-left: 28px; }
+.script-body li { padding: 12px 0 14px 8px; border-bottom: 1px solid var(--line); color: var(--ink); }
+.prompt-id { display: block; color: var(--muted); font: .68rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .08em; }
+.pause { display: block; margin-top: 6px; color: var(--coral); font-size: .72rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .source-link { display: inline-flex; margin-top: 28px; padding: 10px 16px; border: 1px solid var(--ink); border-radius: 999px; background: transparent; color: var(--ink); font-size: .78rem; font-weight: 800; text-decoration: none; }
 .source-link:hover, .source-link:focus-visible { background: var(--lime); }
 .site-footer { border-width: 1px 0 0; padding: 28px 24px 48px; }
@@ -80,5 +93,7 @@ main img { max-width: 100%; height: auto; }
   .site-footer-inner { flex-direction: column; }
   main h1 { font-size: clamp(3rem, 16vw, 5.5rem); }
   .block-grid { grid-template-columns: 1fr; }
+  .script-block summary { grid-template-columns: 74px 1fr 24px; gap: 10px; padding: 18px; }
+  .script-body { padding: 0 18px 20px; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
