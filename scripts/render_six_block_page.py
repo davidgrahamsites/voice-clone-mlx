@@ -10,22 +10,35 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "data/scripts/voice_training_script_30_minutes.md"
 OUTPUT = ROOT / "docs/six-block-script.html"
-PROMPT = re.compile(r"^(?P<id>[A-Z]+-[A-Z]-\d+):\s*(?P<text>.+)$")
+PROMPT = re.compile(r"^(?P<id>[A-Z]+(?:-[A-Z]+)?-\d+):\s*(?P<text>.+)$")
 MARKER = re.compile(r"^Say:\s+\*\*(?P<text>.+?)\*\*$")
+STYLE = re.compile(r"^## (?P<text>.+)$")
+STYLE_GROUPS = (
+    ("Wooden / neutral", "neutral", ("Neutral block A", "Neutral block B")),
+    ("Warm", "warm", ("Warm block",)),
+    ("Energetic", "energetic", ("Energetic block",)),
+    ("Serious", "serious", ("Serious block",)),
+    ("Somber", "somber", ("Somber block",)),
+    ("Dialogue", "dialogue", ("Questioning block", "Emphasis block", "Dialogue block")),
+)
 
 
-def prompts() -> list[tuple[str, str, str | None]]:
+def prompts() -> list[tuple[str, str, str | None, str]]:
     rows = []
     current_marker = None
+    current_style = None
     for line in SOURCE.read_text(encoding="utf-8").splitlines():
+        style = STYLE.match(line)
+        if style:
+            current_style = style.group("text")
         marker = MARKER.match(line)
         if marker:
             current_marker = marker.group("text")
         match = PROMPT.match(line)
         if match:
-            rows.append((match.group("id"), match.group("text"), current_marker))
-    if len(rows) != 100:
-        raise ValueError(f"expected 100 prompts, found {len(rows)}")
+            rows.append((match.group("id"), match.group("text"), current_marker, current_style))
+    if len(rows) != 166:
+        raise ValueError(f"expected 166 prompts, found {len(rows)}")
     return rows
 
 
@@ -36,20 +49,19 @@ def calibration() -> str:
     return "At first light, " + " ".join(line.strip() for line in passage.splitlines() if line.strip())
 
 
-def block_html(number: int, rows: list[tuple[str, str, str | None]], calibration_text: str) -> str:
+def block_html(number: int, title: str, slug: str, rows: list[tuple[str, str, str | None, str]], calibration_text: str) -> str:
     start, end = rows[0][0], rows[-1][0]
-    start_parts = start.lower().split("-")
-    filename = f"block-{number:02d}-{start_parts[0].lower()}-{start_parts[1].lower()}-{start_parts[2]}-to-{end.split('-')[-1].lower()}.wav"
+    filename = f"block-{number:02d}-{slug}.wav"
     items = []
     previous_marker = None
-    for prompt_id, text, marker in rows:
+    for prompt_id, text, marker, _style in rows:
         if marker != previous_marker:
             items.append(f'          <li class="style-marker"><strong>Say: {html.escape(marker)}</strong><span class="pause">Pause three seconds.</span></li>')
             previous_marker = marker
         items.append(f'          <li><span class="prompt-id">{html.escape(prompt_id)}</span> {html.escape(text)}<span class="pause">Pause two seconds.</span></li>')
     items = "\n".join(items)
     return f"""      <section class=\"script-block\">
-        <div class=\"script-heading\"><span class=\"block-number\">Block {number:02d}</span><span><strong>{start} → {end}</strong><small>Five-minute recording segment</small></span></div>
+        <div class=\"script-heading\"><span class=\"block-number\">Block {number:02d}</span><span><strong>{html.escape(title)}</strong><small>{start} → {end}</small></span></div>
         <div class=\"script-body\"><p class=\"block-note\"><strong>Start and finish with calibration.</strong> Read the passage below without announcing it, then pause two seconds before the first prompt.</p><p class=\"calibration\">{html.escape(calibration_text)}</p><p class=\"block-note\"><strong>Read the sentences only.</strong> Do not speak the prompt IDs. Pause silently for two seconds after each sentence.</p><ol>
 {items}
         </ol><p class="block-file">Save this recording as: {filename}</p></div>
@@ -59,8 +71,11 @@ def block_html(number: int, rows: list[tuple[str, str, str | None]], calibration
 def render() -> str:
     rows = prompts()
     calibration_text = calibration()
-    blocks = [rows[i * 100 // 6 : (i + 1) * 100 // 6] for i in range(6)]
-    cards = "\n".join(block_html(i + 1, block, calibration_text) for i, block in enumerate(blocks))
+    cards = []
+    for number, (title, slug, source_styles) in enumerate(STYLE_GROUPS, start=1):
+        group = [row for row in rows if row[3] in source_styles]
+        cards.append(block_html(number, title, slug, group, calibration_text))
+    cards = "\n".join(cards)
     canonical = html.escape(SOURCE.read_text(encoding="utf-8"))
     return f'''<!doctype html>
 <html lang="en">
@@ -77,7 +92,7 @@ def render() -> str:
   <main class="doc-shell">
     <div class="doc-kicker">VoiceCloneMLX / complete six-block script</div>
     <h1>Five minutes at a time.</h1>
-    <p class="block-note"><strong>This is the complete script.</strong> Open one block, record its sentences in order, and pause silently for two seconds after each one. The prompt IDs are visual labels; do not say them aloud.</p>
+    <p class="block-note"><strong>This is the complete expressive script.</strong> Record one style block at a time. The prompt IDs are visual labels; do not say them aloud. Each style block begins with calibration instructions and includes its own spoken marker.</p>
     <h2>Before every block</h2>
     <ol><li>Record 30 seconds of room tone with the AC unchanged.</li><li>Wait three seconds, read the calibration passage, then wait two seconds.</li><li>Read the open block's sentences only.</li><li>Stop after its final sentence and two-second pause; resume with the next block later.</li></ol>
     <section class="script-stack" aria-label="Complete recording script">
