@@ -17,10 +17,10 @@ Write down the first and last prompt ID for each file, then resume with the
 next prompt in the next block. The two headings below describe content order;
 they do not require two long recording sessions.
 
-Timing target: the numbered prompts below divided across six short blocks,
-four readings of the calibration passage, eight spoken style markers, two
-seconds after each numbered prompt, three seconds after each marker, and two
-minutes of room tone. At about 145
+Timing target: the numbered prompts below divided across six short files,
+six opening readings of the calibration passage, the spoken style markers shown
+on the recording page, two seconds after each numbered prompt, three seconds
+after each marker, and room tone for every file. At about 145
 spoken words per minute, the captured material is approximately thirty minutes.
 A slower natural pace may run several minutes longer; do not rush to hit a
 clock. Retakes add capture time but do not add accepted training words because
@@ -32,14 +32,14 @@ Use the prompt ranges below as six separate recording files. The first and last
 IDs are included so you can resume without guessing. Read only the sentence
 after each ID; never speak the ID itself.
 
-| Block | Prompt range | File name suggestion |
+| File | Prompt range | File name suggestion |
 | --- | --- | --- |
-| 1 | `NEUTRAL-A-001` through `NEUTRAL-A-016` | `block-01-neutral-a-001-to-016.wav` |
-| 2 | `NEUTRAL-A-017` through `NEUTRAL-A-033` | `block-02-neutral-a-017-to-033.wav` |
-| 3 | `NEUTRAL-A-034` through `NEUTRAL-A-050` | `block-03-neutral-a-034-to-050.wav` |
-| 4 | `NEUTRAL-B-001` through `NEUTRAL-B-016` | `block-04-neutral-b-001-to-016.wav` |
-| 5 | `NEUTRAL-B-017` through `NEUTRAL-B-033` | `block-05-neutral-b-017-to-033.wav` |
-| 6 | `NEUTRAL-B-034` through `NEUTRAL-B-050` | `block-06-neutral-b-034-to-050.wav` |
+| 1 | `NEUTRAL-A-001` through `NEUTRAL-A-028` | `block-01-neutral-a-opening.wav` |
+| 2 | `NEUTRAL-A-029` through `WARM-006` | `block-02-neutral-a-warm.wav` |
+| 3 | `WARM-007` through `SERIOUS-009` | `block-03-warm-energetic-serious.wav` |
+| 4 | `NEUTRAL-B-001` through `NEUTRAL-B-028` | `block-04-neutral-b-opening.wav` |
+| 5 | `NEUTRAL-B-029` through `SOMBER-006` | `block-05-neutral-b-somber.wav` |
+| 6 | `SOMBER-007` through `DIALOGUE-008` | `block-06-somber-dialogue.wav` |
 
 For each block: record room tone, read the calibration passage, pause two
 seconds, read only that block's prompt range, pause two seconds after every
